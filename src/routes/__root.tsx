@@ -9,6 +9,7 @@ import { Suspense } from 'react'
 import { Provider } from 'react-redux'
 import { store } from '#/store/store'
 import { AuthBootstrap } from '../app/providers/AuthBootstrap'
+import { Toaster } from 'sonner'
 
 import appCss from '../styles.css?url'
 
@@ -44,6 +45,7 @@ function RootDocument() {
           </AuthBootstrap>
         </Provider>
 
+        <Toaster position="bottom-right" richColors closeButton expand={true} />
         <Scripts />
       </body>
     </html>

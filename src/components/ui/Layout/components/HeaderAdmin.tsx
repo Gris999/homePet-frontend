@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Heart, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Link } from '@tanstack/react-router'
+import { NotificationBell } from '#/components/NotificationBell'
 
 export const HeaderAdmin = () => {
   const [open, setOpen] = useState(false)
@@ -43,6 +44,7 @@ export const HeaderAdmin = () => {
 
         {/* Desktop acciones */}
         <div className="hidden md:flex items-center gap-3">
+          <NotificationBell />
           <Link to="/login" search={{ register: false }}>
             <Button
               variant="outline"

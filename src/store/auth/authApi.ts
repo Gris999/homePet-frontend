@@ -86,6 +86,13 @@ export const authApi = api.injectEndpoints({
         body: payload,
       }),
     }),
+    deactivateDevice: builder.mutation<void, { token_fcm: string }>({
+      query: (payload) => ({
+        url: '/gestion/notificaciones/dispositivos/desactivar/',
+        method: 'POST',
+        body: payload,
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -98,4 +105,5 @@ export const {
   useMeQuery,
   useLazyMeQuery,
   useLogoutSessionMutation,
+  useDeactivateDeviceMutation,
 } = authApi;

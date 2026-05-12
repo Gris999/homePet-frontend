@@ -6,12 +6,18 @@ import { Heart, Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppDispatch, useAppSelector } from '#/store/hooks'
 import { logout } from '#/store/auth/authSlice'
+import { NotificationBell } from '#/components/NotificationBell'
+import { useFcmToken } from '#/hooks/useFcmToken'
+import { useDeactivateDeviceMutation } from '#/store/auth/authApi'
 
 export const HeaderClient = () => {
   const [open, setOpen] = useState(false)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
+  
+  const { token: fcmToken } = useFcmToken()
+  const [deactivateDevice] = useDeactivateDeviceMutation()
 
   // Cambié text-slate-700 por text-slate-900 para máximo contraste
   const navLinkStyles =
@@ -19,7 +25,14 @@ export const HeaderClient = () => {
   const mobileLinkStyles =
     'block text-base font-bold !text-[#111827] hover:!text-[#7C3AED] py-2'
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      if (fcmToken) {
+        await deactivateDevice({ token_fcm: fcmToken }).unwrap()
+      }
+    } catch (error) {
+      console.error('Error al desactivar notificaciones:', error)
+    }
     dispatch(logout())
     setOpen(false)
     navigate({
@@ -61,12 +74,15 @@ export const HeaderClient = () => {
         {/* BOTONES */}
         <div className="hidden items-center gap-3 md:flex">
           {isAuthenticated ? (
-            <Button
-              onClick={handleLogout}
-              className="border-none bg-red-100 font-bold text-red-600 hover:bg-red-200"
-            >
-              Cerrar sesion
-            </Button>
+            <>
+              <NotificationBell />
+              <Button
+                onClick={handleLogout}
+                className="border-none bg-red-100 font-bold text-red-600 hover:bg-red-200"
+              >
+                Cerrar sesion
+              </Button>
+            </>
           ) : (
             <>
               <Link to="/login" search={{ register: false }}>
