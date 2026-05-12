@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { Link, useLocation } from '@tanstack/react-router'
 import { Button } from '#/components/ui/button'
 import {
-  Home,
-  ShieldCheck,
-  Users,
-  PawPrint,
-  Stethoscope,
-  ChevronLeft,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
+  Home,
+  PawPrint,
+  ShieldCheck,
+  Stethoscope,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 import { useCanView } from '#/store/auth/auth.hooks'
@@ -29,8 +29,10 @@ type MenuChild = {
     | '/Gestionar_Reservas'
     | '/Rutas_Programadas'
     | '/bitacora'
+    | '/seguridad/cambiar-password'
     | '/about'
     | '/login'
+    | '/notificaciones/seguimiento'
   hasAccess?: boolean
 }
 
@@ -48,15 +50,16 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
     items: [{ label: 'Inicio', icon: Home, to: '/dashboard' }],
   },
   {
-    section: 'Módulos del Sistema',
+    section: 'Modulos del Sistema',
     items: [
       {
-        label: 'Autenticación y Seg.',
+        label: 'Autenticacion y Seg.',
         icon: ShieldCheck,
         children: [
           { label: 'Gestionar Usuarios', to: '/Gestionar_Usuarios' },
           { label: 'Roles y Permisos', to: '/Gestionar_Roles_Permisos' },
-          { label: 'Bitácora y Seguridad', to: '/bitacora' },
+          { label: 'Bitacora y Seguridad', to: '/bitacora' },
+          { label: 'Cambiar contrasena', to: '/seguridad/cambiar-password' },
         ],
       },
       {
@@ -68,11 +71,11 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         ],
       },
       {
-        label: 'Clínica Veterinaria',
+        label: 'Clinica Veterinaria',
         icon: Stethoscope,
         children: [
           {
-            label: 'Gestionar Historial Clínico',
+            label: 'Gestionar Historial Clinico',
             to: '/Gestionar_Historia_Clinica',
           },
         ],
@@ -82,7 +85,7 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         icon: PawPrint,
         children: [
           {
-            label: 'Catálogos y Servicios',
+            label: 'Catalogos y Servicios',
             to: '/Gestionar_Servicios_Precios_Catalogo',
           },
           {
@@ -104,7 +107,7 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         icon: Users,
         children: [
           {
-            label: 'seguimiento de pedidos',
+            label: 'Seguimiento de pedidos',
             to: '/notificaciones/seguimiento',
           },
         ],
@@ -143,7 +146,6 @@ export function Sidebar({
   const userRole = useAppSelector((state) => state.auth.user?.role)
   const canViewRutasProgramadas = canViewCitas || userRole === 'VETERINARIAN'
 
-  // Mapeo de rutas a permisos para el filtrado dinámico
   const permissionMap: Record<string, boolean> = {
     '/dashboard': true,
     '/Gestionar_Usuarios': canViewUsuarios,
@@ -156,6 +158,8 @@ export function Sidebar({
     '/Gestionar_Agenda': canViewServicios,
     '/Gestionar_Reservas': canViewCitas,
     '/Rutas_Programadas': canViewRutasProgramadas,
+    '/seguridad/cambiar-password': true,
+    '/notificaciones/seguimiento': true,
   }
 
   const processedSections = menuSections.map((section) => ({

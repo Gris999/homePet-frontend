@@ -48,6 +48,24 @@ export interface LoginRequest {
   plataforma?: 'WEB' | 'MOVIL';
 }
 
+export interface ForgotPasswordRequest {
+  correo: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  nueva_password: string;
+}
+
+export interface ChangePasswordRequest {
+  password_actual: string;
+  nueva_password: string;
+}
+
+export interface MessageResponse {
+  detail: string;
+}
+
 export interface MobileLoginRequest extends LoginRequest {
   slug_veterinaria: string;
   plataforma: 'MOVIL';

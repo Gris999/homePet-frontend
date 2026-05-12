@@ -14,7 +14,9 @@ import { Route as ClientRouteImport } from './routes/_client'
 import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as DemoTableRouteImport } from './routes/demo/table'
+import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
+import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
 import { Route as PublicAboutRouteImport } from './routes/_public/about'
 import { Route as ClientMisReservasRouteImport } from './routes/_client/mis-reservas'
 import { Route as ClientMisMascotasRouteImport } from './routes/_client/mis-mascotas'
@@ -34,6 +36,8 @@ import { Route as AdminGestionar_ClientesRouteImport } from './routes/_admin/Ges
 import { Route as AdminGestionar_AgendaRouteImport } from './routes/_admin/Gestionar_Agenda'
 import { Route as DemoFormSimpleRouteImport } from './routes/demo/form.simple'
 import { Route as DemoFormAddressRouteImport } from './routes/demo/form.address'
+import { Route as ClientMiCuentaCambiarPasswordRouteImport } from './routes/_client/mi-cuenta/cambiar-password'
+import { Route as AdminSeguridadCambiarPasswordRouteImport } from './routes/_admin/seguridad/cambiar-password'
 import { Route as AdminNotificacionesSeguimientoRouteImport } from './routes/_admin/notificaciones/seguimiento'
 
 const PublicRoute = PublicRouteImport.update({
@@ -58,9 +62,19 @@ const DemoTableRoute = DemoTableRouteImport.update({
   path: '/demo/table',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PublicResetPasswordRoute = PublicResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => PublicRoute,
+} as any)
 const PublicLoginRoute = PublicLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicForgotPasswordRoute = PublicForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicAboutRoute = PublicAboutRouteImport.update({
@@ -161,6 +175,18 @@ const DemoFormAddressRoute = DemoFormAddressRouteImport.update({
   path: '/demo/form/address',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientMiCuentaCambiarPasswordRoute =
+  ClientMiCuentaCambiarPasswordRouteImport.update({
+    id: '/mi-cuenta/cambiar-password',
+    path: '/mi-cuenta/cambiar-password',
+    getParentRoute: () => ClientRoute,
+  } as any)
+const AdminSeguridadCambiarPasswordRoute =
+  AdminSeguridadCambiarPasswordRouteImport.update({
+    id: '/seguridad/cambiar-password',
+    path: '/seguridad/cambiar-password',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminNotificacionesSeguimientoRoute =
   AdminNotificacionesSeguimientoRouteImport.update({
     id: '/notificaciones/seguimiento',
@@ -187,9 +213,13 @@ export interface FileRoutesByFullPath {
   '/mis-mascotas': typeof ClientMisMascotasRoute
   '/mis-reservas': typeof ClientMisReservasRoute
   '/about': typeof PublicAboutRoute
+  '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
+  '/reset-password': typeof PublicResetPasswordRoute
   '/demo/table': typeof DemoTableRoute
   '/notificaciones/seguimiento': typeof AdminNotificacionesSeguimientoRoute
+  '/seguridad/cambiar-password': typeof AdminSeguridadCambiarPasswordRoute
+  '/mi-cuenta/cambiar-password': typeof ClientMiCuentaCambiarPasswordRoute
   '/demo/form/address': typeof DemoFormAddressRoute
   '/demo/form/simple': typeof DemoFormSimpleRoute
 }
@@ -212,9 +242,13 @@ export interface FileRoutesByTo {
   '/mis-mascotas': typeof ClientMisMascotasRoute
   '/mis-reservas': typeof ClientMisReservasRoute
   '/about': typeof PublicAboutRoute
+  '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
+  '/reset-password': typeof PublicResetPasswordRoute
   '/demo/table': typeof DemoTableRoute
   '/notificaciones/seguimiento': typeof AdminNotificacionesSeguimientoRoute
+  '/seguridad/cambiar-password': typeof AdminSeguridadCambiarPasswordRoute
+  '/mi-cuenta/cambiar-password': typeof ClientMiCuentaCambiarPasswordRoute
   '/demo/form/address': typeof DemoFormAddressRoute
   '/demo/form/simple': typeof DemoFormSimpleRoute
 }
@@ -240,10 +274,14 @@ export interface FileRoutesById {
   '/_client/mis-mascotas': typeof ClientMisMascotasRoute
   '/_client/mis-reservas': typeof ClientMisReservasRoute
   '/_public/about': typeof PublicAboutRoute
+  '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
+  '/_public/reset-password': typeof PublicResetPasswordRoute
   '/demo/table': typeof DemoTableRoute
   '/_public/': typeof PublicIndexRoute
   '/_admin/notificaciones/seguimiento': typeof AdminNotificacionesSeguimientoRoute
+  '/_admin/seguridad/cambiar-password': typeof AdminSeguridadCambiarPasswordRoute
+  '/_client/mi-cuenta/cambiar-password': typeof ClientMiCuentaCambiarPasswordRoute
   '/demo/form/address': typeof DemoFormAddressRoute
   '/demo/form/simple': typeof DemoFormSimpleRoute
 }
@@ -268,9 +306,13 @@ export interface FileRouteTypes {
     | '/mis-mascotas'
     | '/mis-reservas'
     | '/about'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/demo/table'
     | '/notificaciones/seguimiento'
+    | '/seguridad/cambiar-password'
+    | '/mi-cuenta/cambiar-password'
     | '/demo/form/address'
     | '/demo/form/simple'
   fileRoutesByTo: FileRoutesByTo
@@ -293,9 +335,13 @@ export interface FileRouteTypes {
     | '/mis-mascotas'
     | '/mis-reservas'
     | '/about'
+    | '/forgot-password'
     | '/login'
+    | '/reset-password'
     | '/demo/table'
     | '/notificaciones/seguimiento'
+    | '/seguridad/cambiar-password'
+    | '/mi-cuenta/cambiar-password'
     | '/demo/form/address'
     | '/demo/form/simple'
   id:
@@ -320,10 +366,14 @@ export interface FileRouteTypes {
     | '/_client/mis-mascotas'
     | '/_client/mis-reservas'
     | '/_public/about'
+    | '/_public/forgot-password'
     | '/_public/login'
+    | '/_public/reset-password'
     | '/demo/table'
     | '/_public/'
     | '/_admin/notificaciones/seguimiento'
+    | '/_admin/seguridad/cambiar-password'
+    | '/_client/mi-cuenta/cambiar-password'
     | '/demo/form/address'
     | '/demo/form/simple'
   fileRoutesById: FileRoutesById
@@ -374,11 +424,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoTableRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_public/reset-password': {
+      id: '/_public/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof PublicResetPasswordRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_public/login': {
       id: '/_public/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof PublicLoginRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/forgot-password': {
+      id: '/_public/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof PublicForgotPasswordRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_public/about': {
@@ -514,6 +578,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoFormAddressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_client/mi-cuenta/cambiar-password': {
+      id: '/_client/mi-cuenta/cambiar-password'
+      path: '/mi-cuenta/cambiar-password'
+      fullPath: '/mi-cuenta/cambiar-password'
+      preLoaderRoute: typeof ClientMiCuentaCambiarPasswordRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/_admin/seguridad/cambiar-password': {
+      id: '/_admin/seguridad/cambiar-password'
+      path: '/seguridad/cambiar-password'
+      fullPath: '/seguridad/cambiar-password'
+      preLoaderRoute: typeof AdminSeguridadCambiarPasswordRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/notificaciones/seguimiento': {
       id: '/_admin/notificaciones/seguimiento'
       path: '/notificaciones/seguimiento'
@@ -538,6 +616,7 @@ interface AdminRouteChildren {
   AdminBitacoraRoute: typeof AdminBitacoraRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminNotificacionesSeguimientoRoute: typeof AdminNotificacionesSeguimientoRoute
+  AdminSeguridadCambiarPasswordRoute: typeof AdminSeguridadCambiarPasswordRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -555,6 +634,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBitacoraRoute: AdminBitacoraRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AdminNotificacionesSeguimientoRoute: AdminNotificacionesSeguimientoRoute,
+  AdminSeguridadCambiarPasswordRoute: AdminSeguridadCambiarPasswordRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -564,6 +644,7 @@ interface ClientRouteChildren {
   ClientClienteRoute: typeof ClientClienteRoute
   ClientMisMascotasRoute: typeof ClientMisMascotasRoute
   ClientMisReservasRoute: typeof ClientMisReservasRoute
+  ClientMiCuentaCambiarPasswordRoute: typeof ClientMiCuentaCambiarPasswordRoute
 }
 
 const ClientRouteChildren: ClientRouteChildren = {
@@ -571,6 +652,7 @@ const ClientRouteChildren: ClientRouteChildren = {
   ClientClienteRoute: ClientClienteRoute,
   ClientMisMascotasRoute: ClientMisMascotasRoute,
   ClientMisReservasRoute: ClientMisReservasRoute,
+  ClientMiCuentaCambiarPasswordRoute: ClientMiCuentaCambiarPasswordRoute,
 }
 
 const ClientRouteWithChildren =
@@ -578,13 +660,17 @@ const ClientRouteWithChildren =
 
 interface PublicRouteChildren {
   PublicAboutRoute: typeof PublicAboutRoute
+  PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute
   PublicLoginRoute: typeof PublicLoginRoute
+  PublicResetPasswordRoute: typeof PublicResetPasswordRoute
   PublicIndexRoute: typeof PublicIndexRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
   PublicAboutRoute: PublicAboutRoute,
+  PublicForgotPasswordRoute: PublicForgotPasswordRoute,
   PublicLoginRoute: PublicLoginRoute,
+  PublicResetPasswordRoute: PublicResetPasswordRoute,
   PublicIndexRoute: PublicIndexRoute,
 }
 
