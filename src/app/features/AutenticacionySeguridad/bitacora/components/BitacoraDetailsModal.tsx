@@ -37,7 +37,7 @@ export function BitacoraDetailsModal({ bitacora, onClose }: BitacoraDetailsModal
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="font-semibold text-gray-500">Acción:</span>
-              <p className="font-medium text-gray-900">{bitacora.accion_display}</p>
+              <p className="font-medium text-gray-900">{bitacora.accion}</p>
             </div>
             <div>
               <span className="font-semibold text-gray-500">Entidad Afectada:</span>
