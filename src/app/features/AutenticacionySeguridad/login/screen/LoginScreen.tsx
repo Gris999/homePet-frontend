@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Eye, EyeOff, Heart } from 'lucide-react'
@@ -34,19 +34,27 @@ const LoginScreen = () => {
       const result = await login({ correo, password, plataforma: 'WEB' }).unwrap()
 
       applyLoginContext(dispatch, result)
-      console.log(result)
       navigate({
         to: result.usuario.rol === 'CLIENT' ? '/cliente' : '/dashboard',
       })
     } catch (error: any) {
-      if (error?.status === 401) {
+      if (error?.status === 403) {
         setFormError(
-          'Credenciales incorrectas. Verifica tu correo y contraseña.',
+          error?.data?.detail ??
+            'Tu cuenta esta bloqueada temporalmente. Espera unos minutos antes de intentar nuevamente.',
         )
         return
       }
 
-      setFormError('Ocurrió un error en el servidor. Inténtalo más tarde.')
+      if (error?.status === 401) {
+        setFormError(
+          error?.data?.detail ??
+            'Credenciales incorrectas. Verifica tu correo y contrasena.',
+        )
+        return
+      }
+
+      setFormError('Ocurrio un error en el servidor. Intentalo mas tarde.')
     }
   }
 
@@ -62,17 +70,13 @@ const LoginScreen = () => {
               Pet Home
             </h1>
           </div>
-          <p className="text-white/80 text-sm">
-            Cuidamos a los que más quieres
-          </p>
+          <p className="text-white/80 text-sm">Cuidamos a los que mas quieres</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-6 border border-white/20">
           <div>
             <h2 className="text-2xl font-bold text-[#7C3AED]">Bienvenido</h2>
-            <p className="text-slate-500 text-sm">
-              Inicia sesión para continuar
-            </p>
+            <p className="text-slate-500 text-sm">Inicia sesion para continuar</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -93,7 +97,7 @@ const LoginScreen = () => {
 
             <div className="space-y-1.5 relative">
               <label className="text-sm font-semibold text-[#7C3AED]">
-                Contraseña
+                Contrasena
               </label>
               <Input
                 type={showPassword ? 'text' : 'password'}
@@ -107,15 +111,15 @@ const LoginScreen = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-[#7C3AED] hover:text-[#5b2ab3] transition-colors"
+                className="absolute right-3 top-9 text-[#7C3AED] transition-colors hover:text-[#5b2ab3]"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
 
             {formError && (
-              <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-                <p className="text-xs text-red-600 font-medium" role="alert">
+              <div className="rounded-lg border border-red-100 bg-red-50 p-3">
+                <p className="text-xs font-medium text-red-600" role="alert">
                   {formError}
                 </p>
               </div>
@@ -126,8 +130,17 @@ const LoginScreen = () => {
               disabled={isLoading}
               className="w-full mt-4 bg-[#F97316] hover:bg-[#EA580C] text-white font-bold h-11 transition-all"
             >
-              {isLoading ? 'Iniciando sesión...' : 'Entrar'}
+              {isLoading ? 'Iniciando sesion...' : 'Entrar'}
             </Button>
+
+            <div className="text-right">
+              <Link
+                to="/forgot-password"
+                className="text-sm font-semibold text-[#6A24D4] hover:underline"
+              >
+                Olvide mi contrasena
+              </Link>
+            </div>
           </form>
 
           <div className="relative flex items-center py-2">

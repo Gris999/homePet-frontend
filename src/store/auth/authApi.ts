@@ -1,8 +1,12 @@
 import { api } from '../api/api';
 import type {
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
   LoginRequest,
   LoginResponse,
+  MessageResponse,
   RegisterRequest,
+  ResetPasswordRequest,
   AuthContextResponse,
   MobileLoginRequest,
 } from './auth.types';
@@ -86,11 +90,33 @@ export const authApi = api.injectEndpoints({
         body: payload,
       }),
     }),
+<<<<<<< HEAD
     deactivateDevice: builder.mutation<void, { token_fcm: string }>({
       query: (payload) => ({
         url: '/gestion/notificaciones/dispositivos/desactivar/',
         method: 'POST',
         body: payload,
+=======
+    forgotPassword: builder.mutation<MessageResponse, ForgotPasswordRequest>({
+      query: (body) => ({
+        url: '/auth/forgot-password/',
+        method: 'POST',
+        body,
+      }),
+    }),
+    resetPassword: builder.mutation<MessageResponse, ResetPasswordRequest>({
+      query: (body) => ({
+        url: '/auth/reset-password/',
+        method: 'POST',
+        body,
+      }),
+    }),
+    changePassword: builder.mutation<MessageResponse, ChangePasswordRequest>({
+      query: (body) => ({
+        url: '/auth/change-password/',
+        method: 'POST',
+        body,
+>>>>>>> origin/main
       }),
     }),
   }),
@@ -105,5 +131,11 @@ export const {
   useMeQuery,
   useLazyMeQuery,
   useLogoutSessionMutation,
+<<<<<<< HEAD
   useDeactivateDeviceMutation,
+=======
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+  useChangePasswordMutation,
+>>>>>>> origin/main
 } = authApi;

@@ -17,7 +17,12 @@ import { useAppSelector } from '#/store/hooks'
 
 type MenuChild = {
   label: string
-  to: '/cliente' | '/mis-mascotas' | '/mis-reservas' | '/Perfil_Mascota'
+  to:
+    | '/cliente'
+    | '/mis-mascotas'
+    | '/mis-reservas'
+    | '/Perfil_Mascota'
+    | '/mi-cuenta/cambiar-password'
 }
 
 type MenuItem = {
@@ -51,23 +56,26 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         ],
       },
       {
-        label: 'Catálogo',
+        label: 'Catalogo',
         icon: ShoppingBagIcon,
-        children: [
-          
-        ],
+        children: [],
       },
       {
         label: 'Sobre Nosotros',
         icon: BriefcaseBusinessIcon,
-        children: [
-          
-        ],
+        children: [],
       },
       {
         label: 'Historial rapido',
         icon: ClipboardList,
         to: '/mis-reservas',
+      },
+      {
+        label: 'Seguridad',
+        icon: BriefcaseBusinessIcon,
+        children: [
+          { label: 'Cambiar contrasena', to: '/mi-cuenta/cambiar-password' },
+        ],
       },
     ],
   },
@@ -164,9 +172,7 @@ export function SidebarCliente({
                         }}
                         title={isCollapsed ? item.label : undefined}
                         className={`flex w-full items-center rounded-xl py-2.5 text-left text-sm transition-all ${
-                          isCollapsed
-                            ? 'justify-center px-0'
-                            : 'gap-3 px-3'
+                          isCollapsed ? 'justify-center px-0' : 'gap-3 px-3'
                         } ${
                           isActiveOrOpen
                             ? 'bg-orange-500/20 text-orange-200 ring-1 ring-orange-300/40'
@@ -175,9 +181,7 @@ export function SidebarCliente({
                       >
                         <Icon
                           className={`h-5 w-5 flex-shrink-0 ${
-                            isActiveOrOpen
-                              ? 'text-orange-300'
-                              : 'text-white/70'
+                            isActiveOrOpen ? 'text-orange-300' : 'text-white/70'
                           }`}
                         />
 

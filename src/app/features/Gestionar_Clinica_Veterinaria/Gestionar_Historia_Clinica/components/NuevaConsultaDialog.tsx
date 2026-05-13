@@ -64,6 +64,14 @@ function toStringSafe(value: unknown) {
   return String(value)
 }
 
+function openNativePicker(event: React.MouseEvent<HTMLInputElement> | React.FocusEvent<HTMLInputElement>) {
+  const input = event.currentTarget as HTMLInputElement & {
+    showPicker?: () => void
+  }
+
+  input.showPicker?.()
+}
+
 export function NuevaConsultaDialog({
   open,
   onOpenChange,
@@ -296,6 +304,8 @@ export function NuevaConsultaDialog({
                       name="fecha_consulta"
                       value={form.fecha_consulta}
                       onChange={handleChange}
+                      onClick={openNativePicker}
+                      onFocus={openNativePicker}
                       className="h-14 rounded-2xl border-slate-300 text-base focus-visible:ring-violet-500"
                     />
                   </div>
@@ -432,6 +442,8 @@ export function NuevaConsultaDialog({
                       name="proxima_revision"
                       value={form.proxima_revision}
                       onChange={handleChange}
+                      onClick={openNativePicker}
+                      onFocus={openNativePicker}
                       className="h-14 rounded-2xl border-slate-300 text-base focus-visible:ring-violet-500"
                     />
                   </div>
