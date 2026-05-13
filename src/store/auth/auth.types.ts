@@ -80,4 +80,4 @@ export interface RegisterRequest {
   direccion?: string;
 }
 
-export interface RegisterResponse extends LoginResponse {}
+export interface RegisterResponse extends LoginResponse { }

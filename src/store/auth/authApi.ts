@@ -90,13 +90,13 @@ export const authApi = api.injectEndpoints({
         body: payload,
       }),
     }),
-<<<<<<< HEAD
     deactivateDevice: builder.mutation<void, { token_fcm: string }>({
       query: (payload) => ({
         url: '/gestion/notificaciones/dispositivos/desactivar/',
         method: 'POST',
         body: payload,
-=======
+      }),
+    }),
     forgotPassword: builder.mutation<MessageResponse, ForgotPasswordRequest>({
       query: (body) => ({
         url: '/auth/forgot-password/',
@@ -116,7 +116,6 @@ export const authApi = api.injectEndpoints({
         url: '/auth/change-password/',
         method: 'POST',
         body,
->>>>>>> origin/main
       }),
     }),
   }),
@@ -131,11 +130,8 @@ export const {
   useMeQuery,
   useLazyMeQuery,
   useLogoutSessionMutation,
-<<<<<<< HEAD
   useDeactivateDeviceMutation,
-=======
   useForgotPasswordMutation,
   useResetPasswordMutation,
   useChangePasswordMutation,
->>>>>>> origin/main
 } = authApi;
