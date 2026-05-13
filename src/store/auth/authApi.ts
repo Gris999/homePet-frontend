@@ -1,8 +1,12 @@
 import { api } from '../api/api';
 import type {
+  ChangePasswordRequest,
+  ForgotPasswordRequest,
   LoginRequest,
   LoginResponse,
+  MessageResponse,
   RegisterRequest,
+  ResetPasswordRequest,
   AuthContextResponse,
   MobileLoginRequest,
 } from './auth.types';
@@ -86,6 +90,27 @@ export const authApi = api.injectEndpoints({
         body: payload,
       }),
     }),
+    forgotPassword: builder.mutation<MessageResponse, ForgotPasswordRequest>({
+      query: (body) => ({
+        url: '/auth/forgot-password/',
+        method: 'POST',
+        body,
+      }),
+    }),
+    resetPassword: builder.mutation<MessageResponse, ResetPasswordRequest>({
+      query: (body) => ({
+        url: '/auth/reset-password/',
+        method: 'POST',
+        body,
+      }),
+    }),
+    changePassword: builder.mutation<MessageResponse, ChangePasswordRequest>({
+      query: (body) => ({
+        url: '/auth/change-password/',
+        method: 'POST',
+        body,
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -98,4 +123,7 @@ export const {
   useMeQuery,
   useLazyMeQuery,
   useLogoutSessionMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+  useChangePasswordMutation,
 } = authApi;

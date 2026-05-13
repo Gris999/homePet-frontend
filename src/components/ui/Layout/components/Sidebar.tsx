@@ -58,6 +58,7 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         children: [
           { label: 'Gestionar Usuarios', to: '/Gestionar_Usuarios' },
           { label: 'Roles y Permisos', to: '/Gestionar_Roles_Permisos' },
+          { label: 'Cambiar contraseña', to: '/seguridad/cambiar-password' },
           { label: 'Bitácora y Seguridad', to: '/bitacora' },
           { label: 'Copias de Seguridad', to: '/gestionar-backups' },
         ],
@@ -152,6 +153,7 @@ export function Sidebar({
     '/dashboard': true,
     '/Gestionar_Usuarios': canViewUsuarios,
     '/Gestionar_Roles_Permisos': canViewRoles,
+    '/seguridad/cambiar-password': true,
     '/bitacora': canViewBitacora,
     '/gestionar-backups': canViewBackups,
     '/Gestionar_Clientes': canViewClientes,

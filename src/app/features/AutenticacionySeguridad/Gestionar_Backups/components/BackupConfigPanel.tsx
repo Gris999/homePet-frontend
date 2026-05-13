@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,16 @@ export function BackupConfigPanel({
   const [frecuencia, setFrecuencia] = useState<string>(config?.frecuencia || 'SEMANAL');
   const [diasRetention, setDiasRetention] = useState<number>(config?.dias_retención || 30);
   const [horaEjecucion, setHoraEjecucion] = useState<number>(config?.hora_ejecucion ?? 2);
+  const [minutoEjecucion, setMinutoEjecucion] = useState<number>(config?.minuto_ejecucion ?? 15);
   const [diasSemana, setDiasSemana] = useState<number[]>(config?.dias_semana ?? []);
+
+  useEffect(() => {
+    setFrecuencia(config?.frecuencia || 'SEMANAL');
+    setDiasRetention(config?.dias_retención || 30);
+    setHoraEjecucion(config?.hora_ejecucion ?? 2);
+    setMinutoEjecucion(config?.minuto_ejecucion ?? 15);
+    setDiasSemana(config?.dias_semana ?? []);
+  }, [config?.id_backup_config, config?.frecuencia, config?.dias_retención, config?.hora_ejecucion, config?.minuto_ejecucion, config?.dias_semana]);
 
   const diasSemanaLabels = [
     'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
@@ -51,6 +60,7 @@ export function BackupConfigPanel({
 
     if (frecuencia === 'PERSONALIZADO') {
       saveData.hora_ejecucion = horaEjecucion;
+      saveData.minuto_ejecucion = minutoEjecucion;
       if (diasSemana.length > 0) {
         saveData.dias_semana = diasSemana;
       }
@@ -64,6 +74,7 @@ export function BackupConfigPanel({
     diasRetention !== config?.dias_retención ||
     (frecuencia === 'PERSONALIZADO' && (
       horaEjecucion !== config?.hora_ejecucion ||
+      minutoEjecucion !== (config?.minuto_ejecucion ?? 15) ||
       JSON.stringify(diasSemana) !== JSON.stringify(config?.dias_semana || [])
     ));
 
@@ -108,8 +119,19 @@ export function BackupConfigPanel({
                   disabled={isLoading}
                   className="w-20 px-3 py-2 border border-gray-300 rounded-lg bg-white text-black"
                 />
-                <span className="text-sm text-gray-600">
-                  {String(horaEjecucion).padStart(2, '0')}:00 hrs
+                <span className="text-sm text-gray-600">hrs</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={minutoEjecucion}
+                  onChange={(e) => setMinutoEjecucion(Math.max(0, Math.min(59, parseInt(e.target.value) || 0)))}
+                  disabled={isLoading}
+                  className="w-20 px-3 py-2 border border-gray-300 rounded-lg bg-white text-black"
+                />
+                <span className="text-sm text-gray-600">min</span>
+                <span className="text-sm text-gray-600 ml-2">
+                  {String(horaEjecucion).padStart(2, '0')}:{String(minutoEjecucion).padStart(2, '0')} hrs
                 </span>
               </div>
               <p className="text-xs text-gray-500 mt-1">Hora del día en que se ejecutará el backup</p>
@@ -185,6 +207,20 @@ export function BackupConfigPanel({
             </div>
             <p className="text-sm text-green-800 ml-6">
               {format(new Date(config.último_backup), 'dd MMMM yyyy HH:mm', {
+                locale: es,
+              })}
+            </p>
+          </div>
+        )}
+
+        {config?.actualizado && (
+          <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 space-y-1">
+            <div className="flex items-center gap-2 text-gray-800">
+              <Clock className="h-4 w-4" />
+              <span className="text-sm font-medium">Última actualización</span>
+            </div>
+            <p className="text-sm text-gray-700 ml-6">
+              {format(new Date(config.actualizado), 'dd MMMM yyyy HH:mm', {
                 locale: es,
               })}
             </p>

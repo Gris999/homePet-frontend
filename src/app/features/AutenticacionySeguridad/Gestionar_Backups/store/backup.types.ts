@@ -27,6 +27,7 @@ export interface BackupConfig {
   actualizado: string;
   // Campos de personalización (para frecuencia PERSONALIZADO)
   hora_ejecucion?: number; // 0-23 (hora del día)
+  minuto_ejecucion?: number; // 0-59 (minuto del día)
   dias_semana?: number[]; // [0-6] donde 0=lunes, 6=domingo
 }
 

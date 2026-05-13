@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,6 @@ import {
 } from '@tanstack/react-table';
 import { AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { BackupRestore } from '../store/backup.types';
-import { BackupDetailsModal } from './BackupDetailsModal';
 
 interface BackupTableProps {
   data: BackupRestore[];
@@ -21,7 +20,6 @@ interface BackupTableProps {
   hasNext: boolean;
   hasPrevious: boolean;
   onSelectBackup: (backup: BackupRestore) => void;
-  onRestore?: (backup: BackupRestore) => void;
 }
 
 const columnHelper = createColumnHelper<BackupRestore>();
@@ -35,9 +33,8 @@ export function BackupTable({
   hasNext,
   hasPrevious,
   onSelectBackup,
+  onRestore,
 }: BackupTableProps) {
-  const [selectedBackup, setSelectedBackup] = useState<BackupRestore | null>(null);
-
   const columns = useMemo(
     () => [
       columnHelper.accessor('fecha_hora', {
@@ -88,7 +85,6 @@ export function BackupTable({
             size="sm"
             variant="outline"
             onClick={() => {
-              setSelectedBackup(info.row.original);
               onSelectBackup(info.row.original);
             }}
             className="text-xs"
@@ -183,17 +179,6 @@ export function BackupTable({
           </Button>
         </div>
       </div>
-
-      {/* Modal de Detalle */}
-      <BackupDetailsModal
-        backup={selectedBackup}
-        onClose={() => setSelectedBackup(null)}
-        onRestore={(b) => {
-          setSelectedBackup(null);
-          onSelectBackup(b);
-          onRestore?.(b);
-        }}
-      />
     </div>
   );
 }

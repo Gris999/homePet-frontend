@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAppSelector } from '#/store/hooks';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -8,12 +9,13 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '../../../../../components/ui/alert-dialog';
 import { Download, RotateCcw, AlertCircle } from 'lucide-react';
 
 interface BackupActionButtonsProps {
-  onBackupClick: () => void;
+  onBackupClick: (scope?: 'TENANT' | 'GLOBAL') => void;
   onRestoreClick: () => void;
+  onPerformRestore?: (payload: { motivo?: string }) => Promise<void>;
   isBackupLoading: boolean;
   isRestoreLoading: boolean;
   selectedBackupId?: number;
@@ -23,6 +25,7 @@ interface BackupActionButtonsProps {
 export function BackupActionButtons({
   onBackupClick,
   onRestoreClick,
+  onPerformRestore,
   isBackupLoading,
   isRestoreLoading,
   selectedBackupId,
@@ -30,15 +33,23 @@ export function BackupActionButtons({
 }: BackupActionButtonsProps) {
   const [showBackupConfirm, setShowBackupConfirm] = useState(false);
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
+  const [restoreMotivo, setRestoreMotivo] = useState('Restauración manual');
+  const user = useAppSelector((s) => s.auth.user);
+  const isSuperuser = user?.is_superuser || false;
+  const backupScope: 'TENANT' | 'GLOBAL' = isSuperuser ? 'GLOBAL' : 'TENANT';
 
   const handleBackupConfirm = () => {
     setShowBackupConfirm(false);
-    onBackupClick();
+    onBackupClick(backupScope);
   };
 
   const handleRestoreConfirm = () => {
     setShowRestoreConfirm(false);
-    onRestoreClick();
+    if (onPerformRestore) {
+      onPerformRestore({ motivo: restoreMotivo }).catch((e) => console.error(e));
+    } else {
+      onRestoreClick();
+    }
   };
 
   return (
@@ -78,13 +89,16 @@ export function BackupActionButtons({
           <AlertDialogHeader>
             <AlertDialogTitle>Crear Copia de Seguridad</AlertDialogTitle>
             <AlertDialogDescription>
-              Se creará una copia completa de la base de datos. Este proceso puede tomar varios minutos
-              dependiendo del tamaño de la BD.
+              {isSuperuser
+                ? 'Se creará una copia GLOBAL de todas las clínicas. Este proceso puede tomar varios minutos dependiendo del tamaño de la BD.'
+                : 'Se creará una copia de seguridad de esta clínica. Este proceso puede tomar varios minutos dependiendo del tamaño de la BD.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="my-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
             <p className="text-sm text-blue-900">
-              La copia será almacenada en Google Cloud Storage y estará disponible para restauración.
+              {isSuperuser
+                ? 'La copia global será almacenada en Google Cloud Storage y estará disponible para restauración.'
+                : 'La copia de tu clínica será almacenada en Google Cloud Storage y estará disponible para restauración.'}
             </p>
           </div>
           <div className="flex gap-3 justify-end">
@@ -124,6 +138,8 @@ export function BackupActionButtons({
                 placeholder="Ej: Recuperación por error, pruebas..."
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg text-black bg-white"
                 id="restore-reason"
+                value={restoreMotivo}
+                onChange={(e) => setRestoreMotivo(e.target.value)}
               />
             </div>
           </div>
