@@ -6,15 +6,17 @@ import type {
   PedidoListItem,
   SeguimientoDetail,
   SeguimientoListItem,
+  Notificacion,
+  RegistroDispositivo,
 } from '../types/notificaciones.types'
 import { buildPedidosQueryParams, buildSeguimientosQueryParams } from '../utils/queryParams'
 
 type ListResponse<T> =
   | T[]
   | {
-      results?: T[]
-      data?: T[]
-    }
+    results?: T[]
+    data?: T[]
+  }
 
 function normalizeListResponse<T>(response: ListResponse<T>): T[] {
   if (Array.isArray(response)) return response
@@ -49,6 +51,47 @@ export const notificacionesApi = api.injectEndpoints({
         url: `gestion/notificaciones/pedidos/${idPedido}/`,
       }),
     }),
+
+    // --- Nuevos Endpoints de CU-32 ---
+    getNotificationHistory: builder.query<Notificacion[], void>({
+      query: () => ({
+        url: 'gestion/notificaciones/historial/',
+      }),
+      transformResponse: (response: ListResponse<Notificacion>) => normalizeListResponse(response),
+      providesTags: (result) =>
+        result
+          ? [
+            ...result.map(({ id_notificacion }) => ({ type: 'Notifications' as const, id: id_notificacion })),
+            { type: 'Notifications', id: 'LIST' },
+          ]
+          : [{ type: 'Notifications', id: 'LIST' }],
+    }),
+
+    markNotificationRead: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `gestion/notificaciones/historial/${id}/marcar-leida/`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, id) => [{ type: 'Notifications', id }, { type: 'Notifications', id: 'LIST' }],
+    }),
+
+    registerDevice: builder.mutation<void, RegistroDispositivo>({
+      query: (data) => ({
+        url: 'gestion/notificaciones/dispositivos/registrar/',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Devices'],
+    }),
+
+    unregisterDevice: builder.mutation<void, { token_fcm: string }>({
+      query: (data) => ({
+        url: 'gestion/notificaciones/dispositivos/desactivar/',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: ['Devices'],
+    }),
   }),
   overrideExisting: false,
 })
@@ -58,5 +101,9 @@ export const {
   useGetSeguimientoDetailQuery,
   useGetPedidosQuery,
   useGetPedidoDetailQuery,
+  useGetNotificationHistoryQuery,
+  useMarkNotificationReadMutation,
+  useRegisterDeviceMutation,
+  useUnregisterDeviceMutation,
 } = notificacionesApi
 

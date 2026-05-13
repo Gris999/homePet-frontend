@@ -17,6 +17,8 @@ export const TAG_TYPES = [
   'Planes',
   'Especies',
   'Razas',
+  'Notifications',
+  'Devices',
   'Backup',
   'BackupConfig',
 ] as const

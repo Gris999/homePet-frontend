@@ -1,8 +1,9 @@
-import { Bell, LogOut, Search } from 'lucide-react'
+import { LogOut, Search } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '#/components/ui/button'
 import { useAppSelector } from '#/store/hooks'
 import { useLogout } from '#/store/auth/auth.hooks'
+import { NotificationBell } from '#/components/NotificationBell'
 
 export function Topbar() {
   const user = useAppSelector((state) => state.auth.user)
@@ -11,11 +12,11 @@ export function Topbar() {
 
   const initials = user?.correo
     ? user.correo
-        .split('@')[0]
-        .split('.')
-        .map((part) => part[0].toUpperCase())
-        .join('')
-        .slice(0, 2)
+      .split('@')[0]
+      .split('.')
+      .map((part) => part[0].toUpperCase())
+      .join('')
+      .slice(0, 2)
     : 'AD'
 
   const handleLogoutClick = async () => {
@@ -37,13 +38,7 @@ export function Topbar() {
 
       {/* Right Actions */}
       <div className="flex items-center gap-6">
-        {/* Notification Bell */}
-        <Button variant="ghost" className="relative text-gray-500 hover:text-gray-700 transition-colors">
-          <Bell className="w-6 h-6" />
-          <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border-2 border-white">
-            3
-          </span>
-        </Button>
+        <NotificationBell />
 
         {/* User Profile with Menu */}
         <div className="relative">

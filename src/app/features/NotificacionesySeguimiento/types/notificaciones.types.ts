@@ -124,3 +124,19 @@ export interface ApiError {
   data?: unknown
 }
 
+export interface Notificacion {
+  id_notificacion: number
+  titulo: string
+  mensaje: string
+  tipo: 'RESERVA' | 'VACUNA' | 'CONTROL' | 'SISTEMA'
+  estado: 'PENDIENTE' | 'ENVIADA' | 'LEIDA' | 'FALLIDA'
+  id_entidad_relacionada: number | null
+  fecha_creacion: string
+  fecha_leida: string | null
+}
+
+export interface RegistroDispositivo {
+  token_fcm: string
+  plataforma: 'WEB' | 'ANDROID' | 'IOS'
+}
+

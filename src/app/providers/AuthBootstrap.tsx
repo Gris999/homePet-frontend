@@ -3,12 +3,16 @@ import { useLazyMeQuery } from "../../store/auth/authApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { applyMeContext } from "../../store/auth/applyAuthContext";
 import { logout } from "../../store/auth/authSlice";
+import { useFcmToken } from "../../hooks/useFcmToken";
 
 export const AuthBootstrap = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useAppDispatch();
   const { accessToken } = useAppSelector((state) => state.auth);
   const [isInitializing, setIsInitializing] = useState(true);
   const [triggerMe] = useLazyMeQuery();
+  
+  // Activar escucha de notificaciones
+  useFcmToken();
 
   useEffect(() => {
     const initializeAuth = async () => {
