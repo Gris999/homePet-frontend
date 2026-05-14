@@ -1,0 +1,5 @@
+export * from './ClinicaDialog'
+export * from './ClinicaForm'
+export * from './ClinicasTable'
+export * from './clinicasColumns'
+export * from '/DeleteClinicaConfirmation'

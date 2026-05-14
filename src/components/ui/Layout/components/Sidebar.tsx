@@ -27,6 +27,7 @@ type MenuChild = {
   | '/Gestionar_Servicios_Precios_Catalogo'
   | '/Gestionar_Agenda'
   | '/Gestionar_Historia_Clinica'
+  | '/Gestionar_Clinicas_Veterinarias'
   | '/Gestionar_Reservas'
   | '/Rutas_Programadas'
   | '/bitacora'
@@ -78,6 +79,10 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         label: 'Clínica Veterinaria',
         icon: Stethoscope,
         children: [
+          {
+            label: 'Gestionar Clínicas',
+            to: '/Gestionar_Clinicas_Veterinarias',
+          },
           {
             label: 'Gestionar Historial Clínico',
             to: '/Gestionar_Historia_Clinica',
@@ -153,6 +158,7 @@ export function Sidebar({
   const canViewBackups = useCanView('SEG_BACKUPS')
   const canViewClientes = useCanView('CLI_CLIENTES')
   const canViewMascotas = useCanView('CLI_MASCOTAS')
+  const canViewClinicas = useCanView('CLI_CLINICAS')
   const canViewServicios = useCanView('SERV_SERVICIOS')
   const canViewCitas = useCanView('SERV_CITAS')
   const user = useAppSelector((state) => state.auth.user)
@@ -171,6 +177,7 @@ export function Sidebar({
     '/gestionar-backups': canViewBackups,
     '/Gestionar_Clientes': canViewClientes,
     '/Gestionar_Mascotas': canViewMascotas,
+    '/Gestionar_Clinicas_Veterinarias': canViewClinicas,
     '/Gestionar_Historia_Clinica': canViewMascotas,
     '/Gestionar_Servicios_Precios_Catalogo': canViewServicios,
     '/Gestionar_Agenda': canViewServicios,
