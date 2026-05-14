@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronRight,
+  LayoutDashboard,
   type LucideIcon,
 } from 'lucide-react'
 import { useCanView } from '#/store/auth/auth.hooks'
@@ -34,6 +35,7 @@ type MenuChild = {
   | '/login'
   | '/notificaciones/seguimiento'
   | '/seguridad/cambiar-password'
+  | '/Gestionar_Reportes'
   hasAccess?: boolean
 }
 
@@ -112,6 +114,13 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
             label: 'seguimiento de pedidos',
             to: '/notificaciones/seguimiento',
           },
+        ],
+      },
+      {
+        label: 'Reportes',
+        icon: LayoutDashboard,
+        children: [
+          { label: 'Gestionar reportes', to: '/Gestionar_Reportes' },
         ],
       },
     ],

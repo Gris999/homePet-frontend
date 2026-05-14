@@ -31,6 +31,7 @@ import { Route as AdminGestionar_UsuariosRouteImport } from './routes/_admin/Ges
 import { Route as AdminGestionar_Servicios_Precios_CatalogoRouteImport } from './routes/_admin/Gestionar_Servicios_Precios_Catalogo'
 import { Route as AdminGestionar_Roles_PermisosRouteImport } from './routes/_admin/Gestionar_Roles_Permisos'
 import { Route as AdminGestionar_ReservasRouteImport } from './routes/_admin/Gestionar_Reservas'
+import { Route as AdminGestionar_ReportesRouteImport } from './routes/_admin/Gestionar_Reportes'
 import { Route as AdminGestionar_MascotasRouteImport } from './routes/_admin/Gestionar_Mascotas'
 import { Route as AdminGestionar_Historia_ClinicaRouteImport } from './routes/_admin/Gestionar_Historia_Clinica'
 import { Route as AdminGestionar_ClientesRouteImport } from './routes/_admin/Gestionar_Clientes'
@@ -150,6 +151,11 @@ const AdminGestionar_ReservasRoute = AdminGestionar_ReservasRouteImport.update({
   path: '/Gestionar_Reservas',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminGestionar_ReportesRoute = AdminGestionar_ReportesRouteImport.update({
+  id: '/Gestionar_Reportes',
+  path: '/Gestionar_Reportes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminGestionar_MascotasRoute = AdminGestionar_MascotasRouteImport.update({
   id: '/Gestionar_Mascotas',
   path: '/Gestionar_Mascotas',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/Gestionar_Clientes': typeof AdminGestionar_ClientesRoute
   '/Gestionar_Historia_Clinica': typeof AdminGestionar_Historia_ClinicaRoute
   '/Gestionar_Mascotas': typeof AdminGestionar_MascotasRoute
+  '/Gestionar_Reportes': typeof AdminGestionar_ReportesRoute
   '/Gestionar_Reservas': typeof AdminGestionar_ReservasRoute
   '/Gestionar_Roles_Permisos': typeof AdminGestionar_Roles_PermisosRoute
   '/Gestionar_Servicios_Precios_Catalogo': typeof AdminGestionar_Servicios_Precios_CatalogoRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/Gestionar_Clientes': typeof AdminGestionar_ClientesRoute
   '/Gestionar_Historia_Clinica': typeof AdminGestionar_Historia_ClinicaRoute
   '/Gestionar_Mascotas': typeof AdminGestionar_MascotasRoute
+  '/Gestionar_Reportes': typeof AdminGestionar_ReportesRoute
   '/Gestionar_Reservas': typeof AdminGestionar_ReservasRoute
   '/Gestionar_Roles_Permisos': typeof AdminGestionar_Roles_PermisosRoute
   '/Gestionar_Servicios_Precios_Catalogo': typeof AdminGestionar_Servicios_Precios_CatalogoRoute
@@ -269,6 +277,7 @@ export interface FileRoutesById {
   '/_admin/Gestionar_Clientes': typeof AdminGestionar_ClientesRoute
   '/_admin/Gestionar_Historia_Clinica': typeof AdminGestionar_Historia_ClinicaRoute
   '/_admin/Gestionar_Mascotas': typeof AdminGestionar_MascotasRoute
+  '/_admin/Gestionar_Reportes': typeof AdminGestionar_ReportesRoute
   '/_admin/Gestionar_Reservas': typeof AdminGestionar_ReservasRoute
   '/_admin/Gestionar_Roles_Permisos': typeof AdminGestionar_Roles_PermisosRoute
   '/_admin/Gestionar_Servicios_Precios_Catalogo': typeof AdminGestionar_Servicios_Precios_CatalogoRoute
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/Gestionar_Clientes'
     | '/Gestionar_Historia_Clinica'
     | '/Gestionar_Mascotas'
+    | '/Gestionar_Reportes'
     | '/Gestionar_Reservas'
     | '/Gestionar_Roles_Permisos'
     | '/Gestionar_Servicios_Precios_Catalogo'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/Gestionar_Clientes'
     | '/Gestionar_Historia_Clinica'
     | '/Gestionar_Mascotas'
+    | '/Gestionar_Reportes'
     | '/Gestionar_Reservas'
     | '/Gestionar_Roles_Permisos'
     | '/Gestionar_Servicios_Precios_Catalogo'
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/_admin/Gestionar_Clientes'
     | '/_admin/Gestionar_Historia_Clinica'
     | '/_admin/Gestionar_Mascotas'
+    | '/_admin/Gestionar_Reportes'
     | '/_admin/Gestionar_Reservas'
     | '/_admin/Gestionar_Roles_Permisos'
     | '/_admin/Gestionar_Servicios_Precios_Catalogo'
@@ -555,6 +567,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminGestionar_ReservasRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/Gestionar_Reportes': {
+      id: '/_admin/Gestionar_Reportes'
+      path: '/Gestionar_Reportes'
+      fullPath: '/Gestionar_Reportes'
+      preLoaderRoute: typeof AdminGestionar_ReportesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/Gestionar_Mascotas': {
       id: '/_admin/Gestionar_Mascotas'
       path: '/Gestionar_Mascotas'
@@ -626,6 +645,7 @@ interface AdminRouteChildren {
   AdminGestionar_ClientesRoute: typeof AdminGestionar_ClientesRoute
   AdminGestionar_Historia_ClinicaRoute: typeof AdminGestionar_Historia_ClinicaRoute
   AdminGestionar_MascotasRoute: typeof AdminGestionar_MascotasRoute
+  AdminGestionar_ReportesRoute: typeof AdminGestionar_ReportesRoute
   AdminGestionar_ReservasRoute: typeof AdminGestionar_ReservasRoute
   AdminGestionar_Roles_PermisosRoute: typeof AdminGestionar_Roles_PermisosRoute
   AdminGestionar_Servicios_Precios_CatalogoRoute: typeof AdminGestionar_Servicios_Precios_CatalogoRoute
@@ -644,6 +664,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGestionar_ClientesRoute: AdminGestionar_ClientesRoute,
   AdminGestionar_Historia_ClinicaRoute: AdminGestionar_Historia_ClinicaRoute,
   AdminGestionar_MascotasRoute: AdminGestionar_MascotasRoute,
+  AdminGestionar_ReportesRoute: AdminGestionar_ReportesRoute,
   AdminGestionar_ReservasRoute: AdminGestionar_ReservasRoute,
   AdminGestionar_Roles_PermisosRoute: AdminGestionar_Roles_PermisosRoute,
   AdminGestionar_Servicios_Precios_CatalogoRoute:
