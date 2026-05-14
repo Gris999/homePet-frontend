@@ -9,11 +9,13 @@ interface ClinicasTableProps {
   onEdit: (clinica: Veterinaria) => void
   onDelete: (clinicaId: number) => void
   onToggleStatus: (clinicaId: number) => void
+  onChangePlan?: (clinica: Veterinaria) => void
   pageCount: number
   pageIndex: number
   pageSize: number
   onPaginationChange: (pagination: any) => void
   canEdit?: boolean
+  canChangePlan?: boolean
   isLoading?: boolean
 }
 
@@ -22,18 +24,22 @@ export function ClinicasTable({
   onEdit,
   onDelete,
   onToggleStatus,
+  onChangePlan,
   pageCount,
   pageIndex,
   pageSize,
   onPaginationChange,
   canEdit = true,
+  canChangePlan = false,
   isLoading = false,
 }: ClinicasTableProps) {
   const columns = getClinicasColumns({
     onEdit,
     onDelete,
     onToggleStatus,
+    onChangePlan,
     canEdit,
+    canChangePlan,
   })
 
   const table = useReactTable({

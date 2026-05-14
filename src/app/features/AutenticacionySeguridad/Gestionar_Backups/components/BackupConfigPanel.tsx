@@ -1,14 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Clock, Save, AlertCircle } from 'lucide-react';
 import type { BackupConfig } from '../store/backup.types';
@@ -20,95 +14,92 @@ interface BackupConfigPanelProps {
   isSaving: boolean;
 }
 
-export function BackupConfigPanel({
-  config,
-  isLoading,
-  onSave,
-  isSaving,
-}: BackupConfigPanelProps) {
+const getRetentionDays = (cfg?: BackupConfig): number =>
+  (cfg as any)?.['dias_retenci�n'] ?? (cfg as any)?.dias_retención ?? 30;
+
+const getLastBackup = (cfg?: BackupConfig): string | null =>
+  (cfg as any)?.['�ltimo_backup'] ?? (cfg as any)?.último_backup ?? null;
+
+const getNextBackup = (cfg?: BackupConfig): string | null =>
+  (cfg as any)?.['pr�ximo_backup_programado'] ?? (cfg as any)?.próximo_backup_programado ?? null;
+
+export function BackupConfigPanel({ config, isLoading, onSave, isSaving }: BackupConfigPanelProps) {
   const [frecuencia, setFrecuencia] = useState<string>(config?.frecuencia || 'SEMANAL');
-  const [diasRetention, setDiasRetention] = useState<number>(config?.dias_retención || 30);
+  const [diasRetention, setDiasRetention] = useState<number>(getRetentionDays(config));
   const [horaEjecucion, setHoraEjecucion] = useState<number>(config?.hora_ejecucion ?? 2);
   const [minutoEjecucion, setMinutoEjecucion] = useState<number>(config?.minuto_ejecucion ?? 15);
   const [diasSemana, setDiasSemana] = useState<number[]>(config?.dias_semana ?? []);
 
   useEffect(() => {
     setFrecuencia(config?.frecuencia || 'SEMANAL');
-    setDiasRetention(config?.dias_retención || 30);
+    setDiasRetention(getRetentionDays(config));
     setHoraEjecucion(config?.hora_ejecucion ?? 2);
     setMinutoEjecucion(config?.minuto_ejecucion ?? 15);
     setDiasSemana(config?.dias_semana ?? []);
-  }, [config?.id_backup_config, config?.frecuencia, config?.dias_retención, config?.hora_ejecucion, config?.minuto_ejecucion, config?.dias_semana]);
+  }, [config?.id_backup_config, config?.actualizado]);
 
-  const diasSemanaLabels = [
-    'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
-  ];
+  const diasSemanaLabels = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
 
   const toggleDiaSemana = (dia: number) => {
-    setDiasSemana(prev => 
-      prev.includes(dia) 
-        ? prev.filter(d => d !== dia)
-        : [...prev, dia].sort()
+    setDiasSemana((prev) =>
+      prev.includes(dia) ? prev.filter((d) => d !== dia) : [...prev, dia].sort((a, b) => a - b)
     );
   };
 
+  const normalizedConfigDiasSemana = useMemo(() => [...(config?.dias_semana ?? [])].sort((a, b) => a - b), [config?.dias_semana]);
+  const normalizedCurrentDiasSemana = useMemo(() => [...diasSemana].sort((a, b) => a - b), [diasSemana]);
+  const isCustomized = frecuencia === 'PERSONALIZADO' || config?.frecuencia === 'PERSONALIZADO';
+
+  const hasChanges =
+    frecuencia !== config?.frecuencia ||
+    diasRetention !== getRetentionDays(config) ||
+    (isCustomized &&
+      (horaEjecucion !== (config?.hora_ejecucion ?? 2) ||
+        minutoEjecucion !== (config?.minuto_ejecucion ?? 15) ||
+        JSON.stringify(normalizedCurrentDiasSemana) !== JSON.stringify(normalizedConfigDiasSemana)));
+
   const handleSave = () => {
-    const saveData: any = {
+    const saveData: Record<string, unknown> = {
       frecuencia: frecuencia as 'DIARIO' | 'SEMANAL' | 'MENSUAL' | 'PERSONALIZADO',
-      dias_retención: diasRetention,
+      'dias_retenci�n': diasRetention,
     };
 
     if (frecuencia === 'PERSONALIZADO') {
       saveData.hora_ejecucion = horaEjecucion;
       saveData.minuto_ejecucion = minutoEjecucion;
-      if (diasSemana.length > 0) {
-        saveData.dias_semana = diasSemana;
-      }
+      saveData.dias_semana = [...diasSemana];
     }
 
-    onSave(saveData);
+    onSave(saveData as Partial<BackupConfig>);
   };
-
-  const hasChanges = 
-    frecuencia !== config?.frecuencia || 
-    diasRetention !== config?.dias_retención ||
-    (frecuencia === 'PERSONALIZADO' && (
-      horaEjecucion !== config?.hora_ejecucion ||
-      minutoEjecucion !== (config?.minuto_ejecucion ?? 15) ||
-      JSON.stringify(diasSemana) !== JSON.stringify(config?.dias_semana || [])
-    ));
 
   return (
     <Card className="border-[#7C3AED] bg-gradient-to-br from-white to-purple-50">
       <CardHeader>
-        <CardTitle className="text-[#7C3AED]">Configuración de Copias Automáticas</CardTitle>
-        <CardDescription>
-          Define la frecuencia y política de retención de tus copias de seguridad automáticas
-        </CardDescription>
+        <CardTitle className="text-[#7C3AED]">Configuracion de Copias Automaticas</CardTitle>
+        <CardDescription>Define la frecuencia y politica de retencion de tus copias de seguridad automaticas</CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Frecuencia */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Frecuencia de Copia Automática</label>
+          <label className="text-sm font-medium text-gray-700">Frecuencia de copia automatica</label>
           <Select value={frecuencia} onValueChange={setFrecuencia} disabled={isLoading}>
             <SelectTrigger className="bg-white border-gray-300">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="DIARIO">Diario (cada 24 horas)</SelectItem>
-              <SelectItem value="SEMANAL">Semanal (cada 7 días)</SelectItem>
-              <SelectItem value="MENSUAL">Mensual (cada 30 días)</SelectItem>
+              <SelectItem value="SEMANAL">Semanal (cada 7 dias)</SelectItem>
+              <SelectItem value="MENSUAL">Mensual (cada 30 dias)</SelectItem>
               <SelectItem value="PERSONALIZADO">Personalizado</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Configuración Personalizada */}
         {frecuencia === 'PERSONALIZADO' && (
           <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 space-y-4">
             <div>
-              <label className="text-sm font-medium text-gray-700">Hora de Ejecución</label>
+              <label className="text-sm font-medium text-gray-700">Hora de ejecucion</label>
               <div className="mt-2 flex items-center gap-2">
                 <input
                   type="number"
@@ -134,11 +125,10 @@ export function BackupConfigPanel({
                   {String(horaEjecucion).padStart(2, '0')}:{String(minutoEjecucion).padStart(2, '0')} hrs
                 </span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Hora del día en que se ejecutará el backup</p>
             </div>
 
             <div>
-              <label className="text-sm font-medium text-gray-700">Días de Ejecución</label>
+              <label className="text-sm font-medium text-gray-700">Dias de ejecucion</label>
               <div className="mt-2 grid grid-cols-4 gap-2">
                 {diasSemanaLabels.map((dia, index) => (
                   <button
@@ -155,17 +145,12 @@ export function BackupConfigPanel({
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Selecciona qué días ejecutar el backup
-                {diasSemana.length === 0 && <span className="text-orange-600"> (Selecciona al menos un día)</span>}
-              </p>
             </div>
           </div>
         )}
 
-        {/* Días de Retención */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">Días de Retención</label>
+          <label className="text-sm font-medium text-gray-700">Dias de retencion</label>
           <div className="flex gap-3 items-center">
             <input
               type="number"
@@ -176,40 +161,27 @@ export function BackupConfigPanel({
               disabled={isLoading}
               className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-black"
             />
-            <span className="text-sm text-gray-600">días</span>
+            <span className="text-sm text-gray-600">dias</span>
           </div>
-          <p className="text-xs text-gray-500">
-            Las copias más antiguas se eliminarán automáticamente
-          </p>
         </div>
 
-        {/* Información del Próximo Backup */}
-        {config?.próximo_backup_programado && (
+        {getNextBackup(config) && (
           <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 space-y-1">
             <div className="flex items-center gap-2 text-blue-900">
               <Clock className="h-4 w-4" />
-              <span className="text-sm font-medium">Próxima copia programada</span>
+              <span className="text-sm font-medium">Proxima copia programada</span>
             </div>
-            <p className="text-sm text-blue-800 ml-6">
-              {format(new Date(config.próximo_backup_programado), 'dd MMMM yyyy HH:mm', {
-                locale: es,
-              })}
-            </p>
+            <p className="text-sm text-blue-800 ml-6">{format(new Date(getNextBackup(config) as string), 'dd MMMM yyyy HH:mm', { locale: es })}</p>
           </div>
         )}
 
-        {/* Última Copia */}
-        {config?.último_backup && (
+        {getLastBackup(config) && (
           <div className="rounded-lg bg-green-50 border border-green-200 p-3 space-y-1">
             <div className="flex items-center gap-2 text-green-900">
               <AlertCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">Última copia realizada</span>
+              <span className="text-sm font-medium">Ultima copia realizada</span>
             </div>
-            <p className="text-sm text-green-800 ml-6">
-              {format(new Date(config.último_backup), 'dd MMMM yyyy HH:mm', {
-                locale: es,
-              })}
-            </p>
+            <p className="text-sm text-green-800 ml-6">{format(new Date(getLastBackup(config) as string), 'dd MMMM yyyy HH:mm', { locale: es })}</p>
           </div>
         )}
 
@@ -217,30 +189,19 @@ export function BackupConfigPanel({
           <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 space-y-1">
             <div className="flex items-center gap-2 text-gray-800">
               <Clock className="h-4 w-4" />
-              <span className="text-sm font-medium">Última actualización</span>
+              <span className="text-sm font-medium">Ultima actualizacion</span>
             </div>
-            <p className="text-sm text-gray-700 ml-6">
-              {format(new Date(config.actualizado), 'dd MMMM yyyy HH:mm', {
-                locale: es,
-              })}
-            </p>
+            <p className="text-sm text-gray-700 ml-6">{format(new Date(config.actualizado), 'dd MMMM yyyy HH:mm', { locale: es })}</p>
           </div>
         )}
 
-        {/* Botones de Acción */}
         <div className="flex gap-3 pt-4">
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges || isSaving || isLoading}
-            className="bg-[#F97316] text-white hover:bg-[#EA580C]"
-          >
+          <Button onClick={handleSave} disabled={!hasChanges || isSaving || isLoading} className="bg-[#F97316] text-white hover:bg-[#EA580C]">
             <Save className="mr-2 h-4 w-4" />
             {isSaving ? 'Guardando...' : 'Guardar Cambios'}
           </Button>
 
-          {!hasChanges && (
-            <p className="text-sm text-gray-500 self-center">Sin cambios</p>
-          )}
+          {!hasChanges && <p className="text-sm text-gray-500 self-center">Sin cambios</p>}
         </div>
       </CardContent>
     </Card>

@@ -1,7 +1,14 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useGetBackupsQuery, useCreateBackupMutation, useGetBackupConfigQuery, useUpdateBackupConfigMutation, useRestoreBackupMutation } from '../store/backupApi';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import {
+  useCreateBackupMutation,
+  useGetBackupsQuery,
+  useGetBackupConfigQuery,
+  useRestoreBackupMutation,
+  useUpdateBackupConfigMutation,
+} from '../store/backupApi';
 import { useGetPublicVeterinariasQuery } from '#/store/veterinarias/publicVeterinariaApi';
-import { BackupConfigPanel, BackupActionButtons, BackupTable, BackupDetailsModal } from '../components';
+import { BackupActionButtons, BackupConfigPanel, BackupDetailsModal, BackupTable } from '../components';
 import type { BackupFilters, BackupRestore } from '../store/backup.types';
 import { useAppSelector } from '#/store/hooks';
 
@@ -11,6 +18,9 @@ interface VeterinariaOption {
   direccion?: string | null;
 }
 
+const getLastBackup = (cfg: any): string | null => cfg?.['�ltimo_backup'] ?? cfg?.último_backup ?? null;
+const getNextBackup = (cfg: any): string | null => cfg?.['pr�ximo_backup_programado'] ?? cfg?.próximo_backup_programado ?? null;
+
 export default function BackupManagementScreen() {
   const [filters, setFilters] = useState<BackupFilters>({ page: 1 });
   const [selectedBackup, setSelectedBackup] = useState<BackupRestore | null>(null);
@@ -19,14 +29,7 @@ export default function BackupManagementScreen() {
   const user = useAppSelector((state) => state.auth.user);
   const isSuperuser = user?.is_superuser || false;
 
-  useEffect(() => {
-    // Usar RTK Query para obtener veterinarias públicas (maneja basePath y parsing)
-    if (!isSuperuser) return;
-    // trigger query via hook below
-  }, [isSuperuser]);
-
-  // Hook RTK Query para obtener veterinarias públicas
-  const { data: publicVets, isLoading: loadingVets, error: vetError } = useGetPublicVeterinariasQuery(undefined);
+  const { data: publicVets } = useGetPublicVeterinariasQuery(undefined);
 
   useEffect(() => {
     if (!isSuperuser) return;
@@ -35,26 +38,27 @@ export default function BackupManagementScreen() {
     if (!selectedVeterinariaId && vets.length > 0) {
       setSelectedVeterinariaId(vets[0].id_veterinaria);
     }
-  }, [publicVets, isSuperuser]);
+  }, [publicVets, isSuperuser, selectedVeterinariaId]);
 
-  // Queries
   const backupsQueryArgs = isSuperuser ? filters : { ...filters, veterinaria_id: selectedVeterinariaId };
   const {
     data: backupsData,
     isLoading: backupsLoading,
     refetch: refetchBackups,
   } = useGetBackupsQuery(backupsQueryArgs);
-  const { data: configData, isLoading: configLoading } = useGetBackupConfigQuery(
-    isSuperuser ? selectedVeterinariaId : undefined,
-    { skip: isSuperuser && !selectedVeterinariaId }
-  );
 
-  // Mutations
+  const {
+    data: configData,
+    isLoading: configLoading,
+    refetch: refetchConfig,
+  } = useGetBackupConfigQuery(isSuperuser ? selectedVeterinariaId : undefined, {
+    skip: isSuperuser && !selectedVeterinariaId,
+  });
+
   const [createBackup, { isLoading: isCreatingBackup }] = useCreateBackupMutation();
   const [restoreBackup, { isLoading: isRestoring }] = useRestoreBackupMutation();
   const [updateConfig, { isLoading: isUpdatingConfig }] = useUpdateBackupConfigMutation();
 
-  // Manejadores
   const handleBackupClick = async (scope: 'TENANT' | 'GLOBAL' = 'TENANT') => {
     try {
       await createBackup({
@@ -72,22 +76,28 @@ export default function BackupManagementScreen() {
   const handleRestoreClick = async (backup?: BackupRestore | null) => {
     const toRestore = backup ?? selectedBackup;
     if (!toRestore) return;
-    // Abrir el modal de detalles para que el usuario pueda seleccionar el scope y veterinaria
     setSelectedBackup(toRestore);
   };
 
-  const handlePerformRestore = async ({ motivo, scope, veterinaria_id_target }: { motivo?: string; scope?: 'TENANT' | 'GLOBAL'; veterinaria_id_target?: number }) => {
+  const handlePerformRestore = async ({
+    motivo,
+    scope,
+    veterinaria_id_target,
+  }: {
+    motivo?: string;
+    scope?: 'TENANT' | 'GLOBAL';
+    veterinaria_id_target?: number;
+  }) => {
     const backup = selectedBackup;
     if (!backup) return;
     try {
       const inferredScope = scope || (backup.ruta_archivo?.includes('backups/global/') ? 'GLOBAL' : 'TENANT');
       await restoreBackup({
         backup_id: backup.id_backup_restore,
-        motivo: motivo || 'Restauración manual',
+        motivo: motivo || 'Restauracion manual',
         scope: inferredScope,
         veterinaria_id_target: veterinaria_id_target || undefined,
       }).unwrap();
-      // Refrescar lista
       setFilters({ page: 1 });
       await refetchBackups();
       setSelectedBackup(null);
@@ -101,9 +111,19 @@ export default function BackupManagementScreen() {
       await updateConfig({
         ...data,
         veterinaria_id: isSuperuser ? selectedVeterinariaId : undefined,
-      });
+      }).unwrap();
+
+      await Promise.all([refetchConfig(), refetchBackups()]);
+      toast.success('Configuraci�n guardada');
     } catch (error) {
-      console.error('Error actualizando configuración:', error);
+      console.error('Error actualizando configuracion:', error);
+      const err = error as any;
+      const backendMessage =
+        err?.data?.detail ||
+        err?.data?.message ||
+        (typeof err?.data === 'string' ? err.data : null) ||
+        'No se pudo guardar la configuraci�n';
+      toast.error(String(backendMessage));
     }
   };
 
@@ -112,11 +132,9 @@ export default function BackupManagementScreen() {
     return Math.ceil(backupsData.count / 10);
   }, [backupsData?.count]);
 
-  // Para superuser: mostrar la última copia GLOBAL si existe en el listado de backups
   const lastGlobalBackup = useMemo(() => {
     if (!isSuperuser) return null;
     const list = backupsData?.results || [];
-    // Buscar el backup con ruta 'backups/global/' y tomar el más reciente por fecha
     const globals = list.filter((b: any) => b.ruta_archivo && b.ruta_archivo.includes('backups/global/'));
     if (globals.length === 0) return null;
     return globals.reduce((a: any, c: any) => (new Date(a.fecha_hora) > new Date(c.fecha_hora) ? a : c));
@@ -124,60 +142,47 @@ export default function BackupManagementScreen() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      {/* Encabezado */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-800">Gestión de Copias de Seguridad</h1>
-        <p className="text-gray-500 mt-1">
-          Administra tus copias de seguridad, configura la automatización y restaura desde versiones anteriores.
-        </p>
+        <h1 className="text-3xl font-bold text-gray-800">Gestion de Copias de Seguridad</h1>
+        <p className="text-gray-500 mt-1">Administra copias, automatizacion y restauracion.</p>
       </div>
 
       {isSuperuser && (
         <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
           <p className="text-sm font-medium text-blue-900">Modo global activado</p>
-          <p className="mt-1 text-sm text-blue-800">
-            Las copias manuales se crearán automáticamente como GLOBAL. Se usa una clínica de referencia solo para leer historial y configuración.
-          </p>
+          <p className="mt-1 text-sm text-blue-800">Se usa una clinica de referencia para historial y configuracion.</p>
         </div>
       )}
 
-      {/* Panel de Configuración */}
-      <BackupConfigPanel
-        config={configData}
-        isLoading={configLoading}
-        onSave={handleConfigSave}
-        isSaving={isUpdatingConfig}
-      />
+      <BackupConfigPanel config={configData} isLoading={configLoading} onSave={handleConfigSave} isSaving={isUpdatingConfig} />
 
-      {/* Resumen rápido: última copia / próxima ejecución */}
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">Última copia</p>
+            <p className="text-sm text-gray-500">Ultima copia</p>
             <p className="text-base font-medium text-gray-800">
               {isSuperuser
                 ? lastGlobalBackup?.fecha_hora
                   ? new Date(lastGlobalBackup.fecha_hora).toLocaleString()
-                  : configData?.["último_backup"]
-                    ? new Date(configData["último_backup"]).toLocaleString()
-                    : '— No disponible'
-                : configData?.["último_backup"]
-                  ? new Date(configData["último_backup"]).toLocaleString()
-                  : '— No disponible'}
+                  : getLastBackup(configData)
+                    ? new Date(getLastBackup(configData) as string).toLocaleString()
+                    : '- No disponible'
+                : getLastBackup(configData)
+                  ? new Date(getLastBackup(configData) as string).toLocaleString()
+                  : '- No disponible'}
             </p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Próxima ejecución</p>
+            <p className="text-sm text-gray-500">Proxima ejecucion</p>
             <p className="text-base font-medium text-gray-800">
-              {configData?.["próximo_backup_programado"] ? new Date(configData["próximo_backup_programado"]).toLocaleString() : '— No programada'}
+              {getNextBackup(configData) ? new Date(getNextBackup(configData) as string).toLocaleString() : '- No programada'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Sección de Acciones */}
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Acciones Rápidas</h2>
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Acciones Rapidas</h2>
         <BackupActionButtons
           onBackupClick={handleBackupClick}
           onRestoreClick={handleRestoreClick}
@@ -185,11 +190,10 @@ export default function BackupManagementScreen() {
           isBackupLoading={isCreatingBackup}
           isRestoreLoading={isRestoring}
           selectedBackupId={selectedBackup?.id_backup_restore}
-          allowRestore={true} // TODO: verificar permisos del usuario
+          allowRestore={true}
         />
       </div>
 
-      {/* Historial de Copias */}
       <div>
         <h2 className="text-lg font-semibold text-gray-800 mb-4">Historial de Copias</h2>
         <BackupTable
@@ -204,15 +208,10 @@ export default function BackupManagementScreen() {
         />
       </div>
 
-      {/* Modal de Detalles de Backup */}
       <BackupDetailsModal
         backup={selectedBackup}
         onClose={() => setSelectedBackup(null)}
-        onRestore={(backup) => {
-          console.log('Backup restaurado:', backup);
-          // Refrescar lista de backups después de restaurar
-          setFilters({ page: 1 });
-        }}
+        onRestore={() => setFilters({ page: 1 })}
         onPerformRestore={handlePerformRestore}
       />
     </div>

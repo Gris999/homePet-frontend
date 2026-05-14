@@ -5,6 +5,7 @@ import type {
   VeterinariaUpdatePayload,
   VeterinariasQueryParams,
   PaginatedVeterinariasResponse,
+  ChangePlanPayload,
 } from './gestionarClinicas.types'
 
 export const veterinariasApi = api.injectEndpoints({
@@ -51,6 +52,21 @@ export const veterinariasApi = api.injectEndpoints({
       ],
     }),
 
+    updateVeterinariaPlan: builder.mutation<
+      Veterinaria,
+      { id: number; data: ChangePlanPayload }
+    >({
+      query: ({ id, data }) => ({
+        url: `gestion/clinica/veterinarias/${id}/plan/`,
+        method: 'PATCH',
+        body: data,
+      }),
+      invalidatesTags: (_result, _error, { id }) => [
+        'Veterinarias',
+        { type: 'Veterinarias', id },
+      ],
+    }),
+
     deleteVeterinaria: builder.mutation<void, number>({
       query: (id) => ({
         url: `gestion/clinica/veterinarias/${id}/`,
@@ -67,5 +83,6 @@ export const {
   useGetVeterinariaByIdQuery,
   useCreateVeterinariaMutation,
   useUpdateVeterinariaMutation,
+  useUpdateVeterinariaPlanMutation,
   useDeleteVeterinariaMutation,
 } = veterinariasApi

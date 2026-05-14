@@ -44,10 +44,11 @@ export const backupApi = api.injectEndpoints({
     updateBackupConfig: builder.mutation<BackupConfig, Partial<BackupConfig> & { veterinaria_id?: number }>({
       query: (data) => ({
         url: 'auth/backups/config/',
-        method: 'PUT',
+        method: 'PATCH',
+        ...(data.veterinaria_id ? { params: { veterinaria_id: data.veterinaria_id } } : {}),
         body: data,
       }),
-      invalidatesTags: ['BackupConfig'],
+      invalidatesTags: ['BackupConfig', 'Backup'],
     }),
   }),
   overrideExisting: true,

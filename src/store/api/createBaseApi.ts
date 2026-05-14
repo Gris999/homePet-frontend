@@ -78,6 +78,20 @@ export const baseQueryWithReauth: BaseQueryFn<string | FetchArgs, unknown, Fetch
       case 'FETCH_ERROR':
         console.error('Fetch Error: Problemas de Red / Timeout', result.error);
         break;
+      case 'PARSING_ERROR': {
+        const parsingError = result.error as FetchBaseQueryError & {
+          originalStatus?: number;
+          data?: string;
+        };
+        const backendMessage =
+          typeof parsingError.data === 'string'
+            ? parsingError.data.split('\n')[0]
+            : 'Respuesta no JSON del servidor';
+        console.error(
+          `Parsing Error (${parsingError.originalStatus ?? 'desconocido'}): ${backendMessage}`
+        );
+        break;
+      }
       default:
         console.error('Error HTTP no manejado:', result.error);
     }
