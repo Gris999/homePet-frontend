@@ -2,7 +2,9 @@ import { fetchBaseQuery, type BaseQueryFn, type FetchArgs, type FetchBaseQueryEr
 import type { RootState } from '../store';
 import { logout, setAccessToken } from '../auth/authSlice';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://pethome-backend-ujju.onrender.com/api';
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : 'https://pethome-backend-ujju.onrender.com/api');
 const REFRESH_TOKEN_URL = '/auth/token/refresh/';
 
 const baseQuery = fetchBaseQuery({

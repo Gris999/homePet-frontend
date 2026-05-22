@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   LayoutDashboard,
+  PackageSearch,
   type LucideIcon,
 } from 'lucide-react'
 import { useCanView } from '#/store/auth/auth.hooks'
@@ -19,24 +20,27 @@ import { useAppSelector } from '#/store/hooks'
 type MenuChild = {
   label: string
   to:
-  | '/dashboard'
-  | '/Gestionar_Clientes'
-  | '/Gestionar_Mascotas'
-  | '/Gestionar_Usuarios'
-  | '/Gestionar_Roles_Permisos'
-  | '/Gestionar_Servicios_Precios_Catalogo'
-  | '/Gestionar_Agenda'
-  | '/Gestionar_Historia_Clinica'
-  | '/Gestionar_Clinicas_Veterinarias'
-  | '/Gestionar_Reservas'
-  | '/Rutas_Programadas'
-  | '/bitacora'
-  | '/gestionar-backups'
-  | '/about'
-  | '/login'
-  | '/notificaciones/seguimiento'
-  | '/seguridad/cambiar-password'
-  | '/Gestionar_Reportes'
+    | '/dashboard'
+    | '/Gestionar_Clientes'
+    | '/Gestionar_Mascotas'
+    | '/Gestionar_Usuarios'
+    | '/Gestionar_Roles_Permisos'
+    | '/Gestionar_Servicios_Precios_Catalogo'
+    | '/Gestionar_Agenda'
+    | '/Gestionar_Historia_Clinica'
+    | '/Gestionar_Clinicas_Veterinarias'
+    | '/Gestionar_Reservas'
+    | '/Rutas_Programadas'
+    | '/bitacora'
+    | '/gestionar-backups'
+    | '/about'
+    | '/login'
+    | '/notificaciones/seguimiento'
+    | '/seguridad/cambiar-password'
+    | '/Gestionar_Reportes'
+    | '/Gestionar_Categorias'
+    | '/Gestionar_Proveedores'
+    | '/Gestionar_Productos'
   hasAccess?: boolean
 }
 
@@ -112,11 +116,29 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         ],
       },
       {
+        label: 'Inventario y Proveedores',
+        icon: PackageSearch,
+        children: [
+          {
+            label: 'Gestionar Productos',
+            to: '/Gestionar_Productos',
+          },
+          {
+            label: 'Gestionar Categorías',
+            to: '/Gestionar_Categorias',
+          },
+          {
+            label: 'Gestionar Proveedores',
+            to: '/Gestionar_Proveedores',
+          },
+        ],
+      },
+      {
         label: 'Notificaciones y Seguimiento',
         icon: Users,
         children: [
           {
-            label: 'seguimiento de pedidos',
+            label: 'Seguimiento de pedidos',
             to: '/notificaciones/seguimiento',
           },
         ],
@@ -161,28 +183,40 @@ export function Sidebar({
   const canViewClinicas = useCanView('CLI_CLINICAS')
   const canViewServicios = useCanView('SERV_SERVICIOS')
   const canViewCitas = useCanView('SERV_CITAS')
+
   const user = useAppSelector((state) => state.auth.user)
   const userRole = user?.role
   const userName = user?.nombre || user?.correo || 'Usuario'
   const userInitials = userName.substring(0, 2).toUpperCase()
   const canViewRutasProgramadas = canViewCitas || userRole === 'VETERINARIAN'
 
-  // Mapeo de rutas a permisos para el filtrado dinámico
   const permissionMap: Record<string, boolean> = {
     '/dashboard': true,
+
     '/Gestionar_Usuarios': canViewUsuarios,
     '/Gestionar_Roles_Permisos': canViewRoles,
     '/seguridad/cambiar-password': true,
     '/bitacora': canViewBitacora,
     '/gestionar-backups': canViewBackups,
+
     '/Gestionar_Clientes': canViewClientes,
     '/Gestionar_Mascotas': canViewMascotas,
+
     '/Gestionar_Clinicas_Veterinarias': canViewClinicas,
     '/Gestionar_Historia_Clinica': canViewMascotas,
+
     '/Gestionar_Servicios_Precios_Catalogo': canViewServicios,
     '/Gestionar_Agenda': canViewServicios,
     '/Gestionar_Reservas': canViewCitas,
     '/Rutas_Programadas': canViewRutasProgramadas,
+
+    // Inventario y Proveedores
+    '/Gestionar_Productos': true,
+    '/Gestionar_Categorias': true,
+    '/Gestionar_Proveedores': true,
+
+    '/notificaciones/seguimiento': true,
+    '/Gestionar_Reportes': true,
   }
 
   const processedSections = menuSections.map((section) => ({
@@ -193,9 +227,12 @@ export function Sidebar({
           ...child,
           hasAccess: permissionMap[child.to] !== false,
         }))
+
         const hasAccess = processedChildren.some((child) => child.hasAccess)
+
         return { ...item, children: processedChildren, hasAccess }
       }
+
       return { ...item, hasAccess: permissionMap[item.to!] !== false }
     }),
   }))
@@ -256,6 +293,7 @@ export function Sidebar({
                 const isChildActive = childIsActive(item.children, pathname)
                 const itemActive =
                   (item.to && pathname === item.to) || isChildActive
+
                 const itemOpen =
                   hasChildren && (openMenus[item.label] ?? isChildActive)
 
@@ -268,6 +306,7 @@ export function Sidebar({
                         type="button"
                         onClick={() => {
                           if (!hasAccess) return
+
                           if (isCollapsed && toggleSidebar) {
                             toggleSidebar()
                             setOpenMenus((prev) => ({
@@ -298,6 +337,7 @@ export function Sidebar({
                             <span className="flex-1 whitespace-nowrap">
                               {item.label}
                             </span>
+
                             {itemOpen ? (
                               <ChevronDown className="h-4 w-4 text-white/70" />
                             ) : (
@@ -311,6 +351,7 @@ export function Sidebar({
                         <div className="ml-8 mt-1 space-y-1 border-l border-white/15 pl-3">
                           {item.children?.map((child) => {
                             const childActive = pathname === child.to
+
                             const childDisabledClasses = child.hasAccess
                               ? ''
                               : 'opacity-40 cursor-not-allowed pointer-events-none'
@@ -363,6 +404,7 @@ export function Sidebar({
                         itemActive ? 'text-orange-300' : 'text-white/70'
                       }`}
                     />
+
                     {!isCollapsed && (
                       <span className="whitespace-nowrap">{item.label}</span>
                     )}
@@ -386,7 +428,9 @@ export function Sidebar({
         {!isCollapsed && (
           <div className="flex flex-col overflow-hidden whitespace-nowrap">
             <span className="truncate text-sm font-medium">{userName}</span>
-            <span className="truncate text-xs text-white/60">{user?.correo}</span>
+            <span className="truncate text-xs text-white/60">
+              {user?.correo}
+            </span>
           </div>
         )}
       </div>
