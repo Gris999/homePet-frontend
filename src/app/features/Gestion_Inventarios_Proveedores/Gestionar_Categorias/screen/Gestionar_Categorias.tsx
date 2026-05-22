@@ -35,7 +35,6 @@ export function GestionarCategorias() {
     useState<Categoria | undefined>()
   const [isLoading, setIsLoading] = useState(false)
   const accessToken = useAppSelector((s) => s.auth.accessToken)
-  const user = useAppSelector((s) => s.auth.user)
 
   const { data: categoriasData = [], isLoading: queryLoading } = useGetCategoriasQuery(undefined, { skip: !accessToken })
   const [createCategoria] = useCreateCategoriaMutation()
@@ -58,8 +57,7 @@ export function GestionarCategorias() {
   const handleCreate = async (data: CategoriaFormData) => {
     setIsLoading(true)
     try {
-      const payload = { ...data, veterinaria: user?.id_veterinaria ?? 1 }
-      await createCategoria(payload).unwrap()
+      await createCategoria(data).unwrap()
       setDialogOpen(false)
     } finally {
       setIsLoading(false)
@@ -71,7 +69,7 @@ export function GestionarCategorias() {
 
     setIsLoading(true)
     try {
-      await updateCategoria({ id: selectedCategoria.id_categoria_producto, data: { ...data, veterinaria: user?.id_veterinaria ?? 1 } }).unwrap()
+      await updateCategoria({ id: selectedCategoria.id_categoria_producto, data }).unwrap()
       setDialogOpen(false)
       setSelectedCategoria(undefined)
     } finally {
@@ -110,6 +108,8 @@ export function GestionarCategorias() {
     setSelectedCategoria(undefined)
     setDialogOpen(true)
   }
+
+  const loadingState = isLoading || isQueryLoading
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] px-4 py-6 sm:px-6 lg:px-10">
@@ -208,7 +208,7 @@ export function GestionarCategorias() {
           categorias={filteredCategorias}
           onEdit={handleEdit}
           onDelete={handleDeleteClick}
-          isLoading={isLoading}
+          isLoading={loadingState}
         />
 
         {/* Dialog */}
@@ -220,7 +220,7 @@ export function GestionarCategorias() {
             if (!open) setSelectedCategoria(undefined)
           }}
           onSubmit={selectedCategoria ? handleUpdate : handleCreate}
-          isLoading={isLoading}
+          isLoading={loadingState}
         />
 
         {/* Delete Confirmation */}
@@ -228,7 +228,7 @@ export function GestionarCategorias() {
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
           onConfirm={handleDelete}
-          isLoading={isLoading}
+          isLoading={loadingState}
         />
       </div>
     </div>

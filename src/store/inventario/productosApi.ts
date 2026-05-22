@@ -6,6 +6,12 @@ type ProductoPayload = Omit<ProductoFormData, 'imagen'> & {
   veterinaria?: number
 }
 
+function appendOptional(formData: FormData, key: string, value: string | number | boolean | null | undefined) {
+  if (value !== null && value !== undefined && value !== '') {
+    formData.append(key, String(value))
+  }
+}
+
 function buildProductoPayload(data: ProductoPayload) {
   const formData = new FormData()
 
@@ -16,7 +22,19 @@ function buildProductoPayload(data: ProductoPayload) {
   formData.append('unidad_medida', data.unidad_medida ?? '')
   formData.append('estado', String(data.estado ?? 'Activo'))
   formData.append('visible_catalogo', String(Boolean(data.visible_catalogo)))
+  formData.append('destacado', String(Boolean(data.destacado)))
+  formData.append('tiene_promocion', String(Boolean(data.tiene_promocion)))
   formData.append('id_categoria_producto', String(data.id_categoria_producto))
+
+  appendOptional(formData, 'tipo_mascota', data.tipo_mascota)
+  appendOptional(formData, 'novedad_desde', data.novedad_desde)
+  appendOptional(formData, 'novedad_hasta', data.novedad_hasta)
+  appendOptional(formData, 'tipo_descuento', data.tipo_descuento)
+  appendOptional(formData, 'porcentaje_descuento', data.porcentaje_descuento)
+  appendOptional(formData, 'monto_descuento', data.monto_descuento)
+  appendOptional(formData, 'precio_promocional', data.precio_promocional)
+  appendOptional(formData, 'promocion_fecha_inicio', data.promocion_fecha_inicio)
+  appendOptional(formData, 'promocion_fecha_fin', data.promocion_fecha_fin)
 
   if (data.id_proveedor !== null && data.id_proveedor !== undefined) {
     formData.append('id_proveedor', String(data.id_proveedor))
@@ -35,7 +53,7 @@ function buildProductoPayload(data: ProductoPayload) {
 
 export const productosApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    getProductos: builder.query<Producto[], { search?: string; estado?: string; visible_catalogo?: string; id_categoria_producto?: number; id_proveedor?: number } | void>({
+    getProductos: builder.query<Producto[], { search?: string; estado?: string; visible_catalogo?: string; id_categoria_producto?: number; id_proveedor?: number; tipo_mascota?: string; destacado?: string; con_descuento?: string } | void>({
       query: (params) => ({
         url: '/gestion/inventario/productos/',
         params: params ?? undefined,
@@ -50,7 +68,7 @@ export const productosApi = api.injectEndpoints({
     }),
     getProducto: builder.query<Producto, number>({
       query: (id) => ({ url: `/gestion/inventario/productos/${id}/` }),
-      providesTags: (result, error, id) => [{ type: 'Productos' as const, id }],
+      providesTags: (_result, _error, id) => [{ type: 'Productos' as const, id }],
     }),
     createProducto: builder.mutation<Producto, ProductoPayload>({
       query: (body) => ({
@@ -66,7 +84,7 @@ export const productosApi = api.injectEndpoints({
         method: 'PUT',
         body: buildProductoPayload(data),
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Productos', id }],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Productos', id }],
     }),
     deleteProducto: builder.mutation<void, number>({
       query: (id) => ({ url: `/gestion/inventario/productos/${id}/`, method: 'DELETE' }),

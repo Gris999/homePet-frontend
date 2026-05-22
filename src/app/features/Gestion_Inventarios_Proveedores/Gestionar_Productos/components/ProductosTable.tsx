@@ -1,6 +1,7 @@
 'use client'
 
-import type { Categoria, Producto, Proveedor } from '../types'
+import type { Categoria, Producto, Proveedor, TipoMascota } from '../types'
+import type { ElementType } from 'react'
 import {
   Table,
   TableBody,
@@ -18,6 +19,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
+  BadgePercent,
+  CalendarDays,
   DollarSign,
   Edit2,
   Eye,
@@ -25,10 +28,22 @@ import {
   ImageIcon,
   MoreVertical,
   Package,
+  PawPrint,
+  Sparkles,
+  Star,
   Tags,
   Trash2,
   Truck,
 } from 'lucide-react'
+
+const TIPO_MASCOTA_LABELS: Record<TipoMascota, string> = {
+  PERRO: 'Perro',
+  GATO: 'Gato',
+  AVE: 'Ave',
+  ROEDOR: 'Roedor',
+  PEZ: 'Pez',
+  OTRO: 'Otro',
+}
 
 interface ProductosTableProps {
   productos: Producto[]
@@ -47,7 +62,7 @@ export function ProductosTable({
   onDelete,
   isLoading = false,
 }: ProductosTableProps) {
-  const formatPrice = (price?: number | null) => {
+  const formatPrice = (price?: number | string | null) => {
     const value = Number(price || 0)
     return `Bs ${value.toFixed(2)}`
   }
@@ -70,8 +85,8 @@ export function ProductosTable({
   }
 
   const getMargenBadge = (
-    precioCompra?: number | null,
-    precioVenta?: number | null,
+    precioCompra?: number | string | null,
+    precioVenta?: number | string | null,
   ) => {
     const compra = Number(precioCompra || 0)
     const venta = Number(precioVenta || 0)
@@ -112,8 +127,7 @@ export function ProductosTable({
         </h3>
 
         <p className="mt-1 text-sm text-slate-500">
-          Comienza registrando tu primer producto para asociarlo a categorías y
-          proveedores.
+          Registra productos para publicarlos en catalogo, novedades o promociones.
         </p>
       </section>
     )
@@ -125,25 +139,24 @@ export function ProductosTable({
         isLoading ? 'opacity-90' : ''
       }`}
     >
-      {/* Tabla desktop sin scroll horizontal */}
       <div className="hidden lg:block">
         <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow className="border-0 bg-gradient-to-r from-[#6D28D9] via-[#7C3AED] to-[#8B5CF6] hover:bg-transparent">
-              <TableHead className="w-[34%] px-5 py-5 text-sm font-bold text-white">
+              <TableHead className="w-[32%] px-5 py-5 text-sm font-bold text-white">
                 Producto
               </TableHead>
 
-              <TableHead className="w-[22%] px-5 py-5 text-sm font-bold text-white">
-                Clasificación
+              <TableHead className="w-[23%] px-5 py-5 text-sm font-bold text-white">
+                Clasificacion
               </TableHead>
 
               <TableHead className="w-[18%] px-5 py-5 text-sm font-bold text-white">
                 Precios
               </TableHead>
 
-              <TableHead className="w-[16%] px-5 py-5 text-sm font-bold text-white">
-                Estado
+              <TableHead className="w-[17%] px-5 py-5 text-sm font-bold text-white">
+                Estado/Catalogo
               </TableHead>
 
               <TableHead className="w-[10%] px-5 py-5 text-right text-sm font-bold text-white">
@@ -158,7 +171,6 @@ export function ProductosTable({
                 key={producto.id_producto}
                 className="border-b border-orange-100 transition-colors last:border-b-0 hover:bg-orange-50/50"
               >
-                {/* Producto */}
                 <TableCell className="px-5 py-5 align-top">
                   <div className="flex min-w-0 items-start gap-3">
                     <ProductoImage producto={producto} />
@@ -169,107 +181,73 @@ export function ProductosTable({
                       </p>
 
                       <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-500">
-                        {producto.descripcion || 'Sin descripción'}
+                        {producto.descripcion || 'Sin descripcion'}
                       </p>
 
-                      <p className="mt-1 text-xs text-slate-400">
-                        ID: {producto.id_producto}
-                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <TipoMascotaBadge tipo={producto.tipo_mascota} />
+                        {producto.destacado && <DestacadoBadge />}
+                        {isNovedadActiva(producto) && <NovedadBadge />}
+                        {isPromocionActiva(producto) && (
+                          <PromocionBadge producto={producto} />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </TableCell>
 
-                {/* Clasificación */}
                 <TableCell className="px-5 py-5 align-top">
                   <div className="space-y-2">
-                    <div className="flex items-start gap-2 text-sm text-slate-700">
-                      <Tags className="mt-0.5 h-4 w-4 shrink-0 text-[#7C3AED]" />
-                      <span className="line-clamp-1">
-                        {getNombreCategoria(producto.id_categoria_producto)}
-                      </span>
-                    </div>
+                    <InfoLine
+                      icon={Tags}
+                      value={getNombreCategoria(producto.id_categoria_producto)}
+                      variant="purple"
+                    />
 
-                    <div className="flex items-start gap-2 text-sm text-slate-700">
-                      <Truck className="mt-0.5 h-4 w-4 shrink-0 text-[#F97316]" />
-                      <span className="line-clamp-2">
-                        {getNombreProveedor(producto.id_proveedor)}
-                      </span>
-                    </div>
+                    <InfoLine
+                      icon={Truck}
+                      value={getNombreProveedor(producto.id_proveedor)}
+                      variant="orange"
+                    />
                   </div>
                 </TableCell>
 
-                {/* Precios */}
                 <TableCell className="px-5 py-5 align-top">
                   <div className="space-y-2">
-                    <div>
-                      <p className="text-xs font-medium text-slate-400">
-                        Compra
-                      </p>
-                      <p className="text-sm font-bold text-slate-800">
-                        {formatPrice(producto.precio_compra)}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-medium text-slate-400">
-                        Venta
-                      </p>
-                      <p className="text-sm font-extrabold text-[#F97316]">
-                        {formatPrice(producto.precio_venta)}
-                      </p>
-                    </div>
-
-                    {getMargenBadge(
-                      producto.precio_compra,
-                      producto.precio_venta,
+                    <PriceBlock label="Compra" value={formatPrice(producto.precio_compra)} />
+                    <PriceBlock
+                      label={producto.tiene_promocion ? 'Venta base' : 'Venta'}
+                      value={formatPrice(producto.precio_venta)}
+                      emphasis
+                    />
+                    {producto.precio_promocional && (
+                      <PriceBlock
+                        label="Promocional"
+                        value={formatPrice(producto.precio_promocional)}
+                        promo
+                      />
                     )}
+                    {getMargenBadge(producto.precio_compra, producto.precio_venta)}
                   </div>
                 </TableCell>
 
-                {/* Estado */}
                 <TableCell className="px-5 py-5 align-top">
                   <div className="flex flex-col items-start gap-2">
                     <EstadoBadge estado={producto.estado} />
                     <CatalogoBadge visible={producto.visible_catalogo ?? true} />
+                    {producto.novedad_desde || producto.novedad_hasta ? (
+                      <DateRangeBadge producto={producto} />
+                    ) : null}
                   </div>
                 </TableCell>
 
-                {/* Acciones */}
                 <TableCell className="px-5 py-5 text-right align-top">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={isLoading}
-                        className="h-10 w-10 rounded-xl border-[#E9D5FF] bg-white text-[#7C3AED] hover:bg-[#F5F3FF]"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-
-                    <DropdownMenuContent
-                      align="end"
-                      className="rounded-xl border-[#E9D5FF] bg-white text-slate-900 shadow-lg"
-                    >
-                      <DropdownMenuItem
-                        onClick={() => onEdit(producto)}
-                        className="cursor-pointer focus:bg-[#F3E8FF] focus:text-[#6D28D9]"
-                      >
-                        <Edit2 className="mr-2 h-4 w-4" />
-                        Editar
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        onClick={() => onDelete(producto.id_producto)}
-                        className="cursor-pointer text-[#F97316] focus:bg-orange-50 focus:text-[#EA580C]"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <ActionsMenu
+                    producto={producto}
+                    isLoading={isLoading}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -277,7 +255,6 @@ export function ProductosTable({
         </Table>
       </div>
 
-      {/* Cards responsive */}
       <div className="space-y-4 p-4 lg:hidden">
         {productos.map((producto) => (
           <article
@@ -294,55 +271,24 @@ export function ProductosTable({
                   </h3>
 
                   <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                    {producto.descripcion || 'Sin descripción'}
-                  </p>
-
-                  <p className="mt-1 text-xs text-slate-400">
-                    ID: {producto.id_producto}
+                    {producto.descripcion || 'Sin descripcion'}
                   </p>
                 </div>
               </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    disabled={isLoading}
-                    className="h-9 w-9 shrink-0 rounded-xl border-[#E9D5FF] bg-white text-[#7C3AED] hover:bg-[#F5F3FF]"
-                  >
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-
-                <DropdownMenuContent
-                  align="end"
-                  className="rounded-xl border-[#E9D5FF] bg-white text-slate-900 shadow-lg"
-                >
-                  <DropdownMenuItem
-                    onClick={() => onEdit(producto)}
-                    className="cursor-pointer focus:bg-[#F3E8FF] focus:text-[#6D28D9]"
-                  >
-                    <Edit2 className="mr-2 h-4 w-4" />
-                    Editar
-                  </DropdownMenuItem>
-
-                  <DropdownMenuItem
-                    onClick={() => onDelete(producto.id_producto)}
-                    className="cursor-pointer text-[#F97316] focus:bg-orange-50 focus:text-[#EA580C]"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Eliminar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ActionsMenu
+                producto={producto}
+                isLoading={isLoading}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                compact
+              />
             </div>
 
             <div className="mt-4 grid grid-cols-1 gap-3 rounded-2xl bg-[#F8FAFC] p-4 sm:grid-cols-2">
               <InfoItem
                 icon={Tags}
-                label="Categoría"
+                label="Categoria"
                 value={getNombreCategoria(producto.id_categoria_producto)}
                 variant="purple"
               />
@@ -373,6 +319,10 @@ export function ProductosTable({
               {getMargenBadge(producto.precio_compra, producto.precio_venta)}
               <CatalogoBadge visible={producto.visible_catalogo ?? true} />
               <EstadoBadge estado={producto.estado} />
+              <TipoMascotaBadge tipo={producto.tipo_mascota} />
+              {producto.destacado && <DestacadoBadge />}
+              {isNovedadActiva(producto) && <NovedadBadge />}
+              {isPromocionActiva(producto) && <PromocionBadge producto={producto} />}
             </div>
           </article>
         ))}
@@ -442,8 +392,182 @@ function CatalogoBadge({ visible }: { visible: boolean }) {
   )
 }
 
+function TipoMascotaBadge({ tipo }: { tipo?: TipoMascota | null }) {
+  if (!tipo) {
+    return (
+      <Badge className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 hover:bg-slate-100">
+        <PawPrint className="mr-1 h-3 w-3" />
+        General
+      </Badge>
+    )
+  }
+
+  return (
+    <Badge className="rounded-full border border-[#C4B5FD] bg-[#F3E8FF] px-3 py-1 text-xs font-bold text-[#7C3AED] hover:bg-[#F3E8FF]">
+      <PawPrint className="mr-1 h-3 w-3" />
+      {TIPO_MASCOTA_LABELS[tipo]}
+    </Badge>
+  )
+}
+
+function DestacadoBadge() {
+  return (
+    <Badge className="rounded-full border border-amber-200 bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100">
+      <Star className="mr-1 h-3 w-3" />
+      Destacado
+    </Badge>
+  )
+}
+
+function NovedadBadge() {
+  return (
+    <Badge className="rounded-full border border-[#C4B5FD] bg-[#F3E8FF] px-3 py-1 text-xs font-bold text-[#6D28D9] hover:bg-[#F3E8FF]">
+      <Sparkles className="mr-1 h-3 w-3" />
+      Novedad
+    </Badge>
+  )
+}
+
+function PromocionBadge({ producto }: { producto: Producto }) {
+  let label = 'Promocion'
+
+  if (producto.tipo_descuento === 'PORCENTAJE' && producto.porcentaje_descuento) {
+    label = `${Number(producto.porcentaje_descuento).toFixed(0)}% off`
+  }
+
+  if (producto.tipo_descuento === 'MONTO_FIJO' && producto.monto_descuento) {
+    label = `-${Number(producto.monto_descuento).toFixed(0)} Bs`
+  }
+
+  if (producto.tipo_descuento === 'PRECIO_ESPECIAL' && producto.precio_promocional) {
+    label = `Bs ${Number(producto.precio_promocional).toFixed(2)}`
+  }
+
+  return (
+    <Badge className="rounded-full border border-orange-200 bg-orange-100 px-3 py-1 text-xs font-bold text-[#EA580C] hover:bg-orange-100">
+      <BadgePercent className="mr-1 h-3 w-3" />
+      {label}
+    </Badge>
+  )
+}
+
+function DateRangeBadge({ producto }: { producto: Producto }) {
+  const desde = producto.novedad_desde || 'Sin inicio'
+  const hasta = producto.novedad_hasta || 'Sin fin'
+
+  return (
+    <Badge className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 hover:bg-slate-100">
+      <CalendarDays className="mr-1 h-3 w-3" />
+      {desde} - {hasta}
+    </Badge>
+  )
+}
+
+function PriceBlock({
+  label,
+  value,
+  emphasis = false,
+  promo = false,
+}: {
+  label: string
+  value: string
+  emphasis?: boolean
+  promo?: boolean
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-slate-400">{label}</p>
+      <p
+        className={`text-sm font-bold ${
+          promo
+            ? 'text-emerald-700'
+            : emphasis
+              ? 'text-[#F97316]'
+              : 'text-slate-800'
+        }`}
+      >
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function InfoLine({
+  icon: Icon,
+  value,
+  variant,
+}: {
+  icon: ElementType
+  value: string
+  variant: 'purple' | 'orange'
+}) {
+  return (
+    <div className="flex items-start gap-2 text-sm text-slate-700">
+      <Icon
+        className={`mt-0.5 h-4 w-4 shrink-0 ${
+          variant === 'purple' ? 'text-[#7C3AED]' : 'text-[#F97316]'
+        }`}
+      />
+      <span className="line-clamp-2">{value}</span>
+    </div>
+  )
+}
+
+function ActionsMenu({
+  producto,
+  isLoading,
+  onEdit,
+  onDelete,
+  compact = false,
+}: {
+  producto: Producto
+  isLoading: boolean
+  onEdit: (producto: Producto) => void
+  onDelete: (id: number) => void
+  compact?: boolean
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          disabled={isLoading}
+          className={`${
+            compact ? 'h-9 w-9' : 'h-10 w-10'
+          } rounded-xl border-[#E9D5FF] bg-white text-[#7C3AED] hover:bg-[#F5F3FF]`}
+        >
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        align="end"
+        className="rounded-xl border-[#E9D5FF] bg-white text-slate-900 shadow-lg"
+      >
+        <DropdownMenuItem
+          onClick={() => onEdit(producto)}
+          className="cursor-pointer focus:bg-[#F3E8FF] focus:text-[#6D28D9]"
+        >
+          <Edit2 className="mr-2 h-4 w-4" />
+          Editar
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onClick={() => onDelete(producto.id_producto)}
+          className="cursor-pointer text-[#F97316] focus:bg-orange-50 focus:text-[#EA580C]"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          Eliminar
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
 type InfoItemProps = {
-  icon: React.ElementType
+  icon: ElementType
   label: string
   value: string
   variant: 'purple' | 'orange'
@@ -462,4 +586,26 @@ function InfoItem({ icon: Icon, label, value, variant }: InfoItemProps) {
       </div>
     </div>
   )
+}
+
+function isNovedadActiva(producto: Producto) {
+  if (!producto.novedad_desde && !producto.novedad_hasta) return false
+
+  const today = new Date().toISOString().slice(0, 10)
+  const desdeOk = !producto.novedad_desde || producto.novedad_desde <= today
+  const hastaOk = !producto.novedad_hasta || producto.novedad_hasta >= today
+
+  return desdeOk && hastaOk
+}
+
+function isPromocionActiva(producto: Producto) {
+  if (!producto.tiene_promocion) return false
+
+  const today = new Date().toISOString().slice(0, 10)
+  const desdeOk =
+    !producto.promocion_fecha_inicio || producto.promocion_fecha_inicio <= today
+  const hastaOk =
+    !producto.promocion_fecha_fin || producto.promocion_fecha_fin >= today
+
+  return desdeOk && hastaOk
 }

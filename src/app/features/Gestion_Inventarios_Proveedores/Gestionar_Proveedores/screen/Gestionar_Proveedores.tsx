@@ -33,7 +33,6 @@ export function GestionarProveedores() {
     useState<Proveedor | undefined>()
   const [isLoading, setIsLoading] = useState(false)
   const accessToken = useAppSelector((s) => s.auth.accessToken)
-  const user = useAppSelector((s) => s.auth.user)
 
   const { data: proveedoresData = [], isLoading: queryLoading } = useGetProveedoresQuery(undefined, {
     skip: !accessToken,
@@ -71,7 +70,7 @@ export function GestionarProveedores() {
     setIsLoading(true)
 
     try {
-      await createProveedor({ ...data, veterinaria: user?.id_veterinaria ?? 1 }).unwrap()
+      await createProveedor(data).unwrap()
       setDialogOpen(false)
     } finally {
       setIsLoading(false)
@@ -86,7 +85,7 @@ export function GestionarProveedores() {
     try {
       await updateProveedor({
         id: selectedProveedor.id_proveedor,
-        data: { ...data, veterinaria: user?.id_veterinaria ?? 1 },
+        data,
       }).unwrap()
       setDialogOpen(false)
       setSelectedProveedor(undefined)

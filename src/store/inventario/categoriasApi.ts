@@ -15,15 +15,15 @@ export const categoriasApi = api.injectEndpoints({
     }),
     getCategoria: builder.query<Categoria, number>({
       query: (id) => ({ url: `/gestion/inventario/categorias-producto/${id}/` }),
-      providesTags: (result, error, id) => [{ type: 'CategoriasProducto' as const, id }],
+      providesTags: (_result, _error, id) => [{ type: 'CategoriasProducto' as const, id }],
     }),
-    createCategoria: builder.mutation<Categoria, CategoriaFormData & { veterinaria?: number }>({
+    createCategoria: builder.mutation<Categoria, CategoriaFormData>({
       query: (body) => ({ url: '/gestion/inventario/categorias-producto/', method: 'POST', body }),
       invalidatesTags: [{ type: 'CategoriasProducto', id: 'LIST' }],
     }),
-    updateCategoria: builder.mutation<Categoria, { id: number; data: CategoriaFormData & { veterinaria?: number } }>({
+    updateCategoria: builder.mutation<Categoria, { id: number; data: CategoriaFormData }>({
       query: ({ id, data }) => ({ url: `/gestion/inventario/categorias-producto/${id}/`, method: 'PUT', body: data }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'CategoriasProducto', id }],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'CategoriasProducto', id }],
     }),
     deleteCategoria: builder.mutation<void, number>({
       query: (id) => ({ url: `/gestion/inventario/categorias-producto/${id}/`, method: 'DELETE' }),

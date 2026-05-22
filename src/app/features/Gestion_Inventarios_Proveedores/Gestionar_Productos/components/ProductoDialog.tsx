@@ -36,9 +36,9 @@ export function ProductoDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="
-          !w-[min(980px,calc(100vw-2rem))]
-          !max-w-[980px]
-          max-h-[92vh]
+          !w-[min(1080px,calc(100vw-2rem))]
+          !max-w-[1080px]
+          max-h-[94vh]
           overflow-hidden
           rounded-2xl
           border
@@ -77,13 +77,10 @@ export function ProductoDialog({
           </DialogHeader>
         </div>
 
-        <div className="max-h-[calc(92vh-145px)] overflow-y-auto bg-white px-5 py-6 sm:px-6 lg:px-8">
+        <div className="max-h-[calc(94vh-145px)] overflow-y-auto bg-white px-5 py-6 sm:px-6 lg:px-8">
           <ProductoForm
             producto={producto}
-            onSubmit={(data) => {
-              onSubmit(data)
-              onOpenChange(false)
-            }}
+            onSubmit={onSubmit}
             onCancel={() => onOpenChange(false)}
             isLoading={isLoading}
             idVeterinaria={idVeterinaria}

@@ -15,15 +15,15 @@ export const proveedoresApi = api.injectEndpoints({
     }),
     getProveedor: builder.query<Proveedor, number>({
       query: (id) => ({ url: `/gestion/inventario/proveedores/${id}/` }),
-      providesTags: (result, error, id) => [{ type: 'Proveedores' as const, id }],
+      providesTags: (_result, _error, id) => [{ type: 'Proveedores' as const, id }],
     }),
-    createProveedor: builder.mutation<Proveedor, ProveedorFormData & { veterinaria?: number }>({
+    createProveedor: builder.mutation<Proveedor, ProveedorFormData>({
       query: (body) => ({ url: '/gestion/inventario/proveedores/', method: 'POST', body }),
       invalidatesTags: [{ type: 'Proveedores', id: 'LIST' }],
     }),
-    updateProveedor: builder.mutation<Proveedor, { id: number; data: ProveedorFormData & { veterinaria?: number } }>({
+    updateProveedor: builder.mutation<Proveedor, { id: number; data: ProveedorFormData }>({
       query: ({ id, data }) => ({ url: `/gestion/inventario/proveedores/${id}/`, method: 'PUT', body: data }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Proveedores', id }],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Proveedores', id }],
     }),
     deleteProveedor: builder.mutation<void, number>({
       query: (id) => ({ url: `/gestion/inventario/proveedores/${id}/`, method: 'DELETE' }),
