@@ -1,1 +1,1 @@
-export { RutasProgramadasPage } from './RutasProgramadasPage'
+export { RutasProgramadasScreen as RutasProgramadasPage } from '#/app/features/UnidadesMovilesLogistica'

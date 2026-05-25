@@ -7,6 +7,7 @@ import {
   Users,
   PawPrint,
   Stethoscope,
+  Truck,
   ChevronLeft,
   ChevronDown,
   ChevronRight,
@@ -31,6 +32,10 @@ type MenuChild = {
     | '/Gestionar_Clinicas_Veterinarias'
     | '/Gestionar_Reservas'
     | '/Rutas_Programadas'
+    | '/Logistica_Unidades_Moviles'
+    | '/Logistica_Asignar_Personal_Zonas'
+    | '/Logistica_Asignar_Servicios_Moviles'
+    | '/Logistica_Rutas_Programadas'
     | '/bitacora'
     | '/gestionar-backups'
     | '/about'
@@ -109,9 +114,27 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
             label: 'Gestionar Reservas',
             to: '/Gestionar_Reservas',
           },
+        ],
+      },
+      {
+        label: 'Unidades móviles y logística',
+        icon: Truck,
+        children: [
           {
-            label: 'Rutas Programadas',
-            to: '/Rutas_Programadas',
+            label: 'Gestionar unidades móviles',
+            to: '/Logistica_Unidades_Moviles',
+          },
+          {
+            label: 'Asignar personal y zonas',
+            to: '/Logistica_Asignar_Personal_Zonas',
+          },
+          {
+            label: 'Asignar servicios móviles',
+            to: '/Logistica_Asignar_Servicios_Moviles',
+          },
+          {
+            label: 'Rutas programadas',
+            to: '/Logistica_Rutas_Programadas',
           },
         ],
       },
@@ -209,6 +232,10 @@ export function Sidebar({
     '/Gestionar_Agenda': canViewServicios,
     '/Gestionar_Reservas': canViewCitas,
     '/Rutas_Programadas': canViewRutasProgramadas,
+    '/Logistica_Unidades_Moviles': canViewRutasProgramadas,
+    '/Logistica_Asignar_Personal_Zonas': canViewRutasProgramadas,
+    '/Logistica_Asignar_Servicios_Moviles': canViewRutasProgramadas,
+    '/Logistica_Rutas_Programadas': canViewRutasProgramadas,
 
     // Inventario y Proveedores
     '/Gestionar_Productos': true,

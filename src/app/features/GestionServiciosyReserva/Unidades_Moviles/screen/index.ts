@@ -1,1 +1,1 @@
-export { UnidadesMovilesPage } from './UnidadesMovilesPage'
+export { GestionarUnidadesMovilesScreen as UnidadesMovilesPage } from '#/app/features/UnidadesMovilesLogistica'

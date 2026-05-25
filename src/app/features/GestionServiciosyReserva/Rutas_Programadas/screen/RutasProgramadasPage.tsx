@@ -28,8 +28,10 @@ import { useGetReservasQuery } from '../../Gestionar_Reservas/store/reservasApi'
 import type { Reserva } from '../../Gestionar_Reservas/store/reservas.types'
 import {
   useAddDetalleRutaMutation,
+  useGetAsignacionesUnidadesQuery,
   useCreateRutaProgramadaMutation,
   useCreateUnidadMovilMutation,
+  useDeleteRutaProgramadaMutation,
   useGetMisRutasQuery,
   useGetRutasProgramadasQuery,
   useGetUnidadesMovilesQuery,
@@ -374,8 +376,7 @@ function CreateRouteDialog({
   open,
   onOpenChange,
   selectedDate,
-  units,
-  veterinarians,
+  assignments,
   tenantName,
   onSubmit,
   isSaving,
@@ -383,8 +384,18 @@ function CreateRouteDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
   selectedDate: string
-  units: Array<{ id_unidad: number; nombre: string; placa?: string | null; estado: boolean }>
-  veterinarians: Array<{ id: number; nombre: string; correo: string }>
+  assignments: Array<{
+    id_asignacion: number
+    id_unidad: number
+    unidad: { id_unidad: number; nombre: string; placa?: string | null }
+    zona_nombre: string
+    personal: Array<{
+      id_usuario: number
+      correo: string
+      rol_operativo: string
+      es_responsable: boolean
+    }>
+  }>
   tenantName?: string | null
   onSubmit: (payload: {
     nombre: string
@@ -397,16 +408,21 @@ function CreateRouteDialog({
   const [nombre, setNombre] = useState('')
   const [fecha, setFecha] = useState(selectedDate)
   const [unidadId, setUnidadId] = useState('')
-  const [veterinarioId, setVeterinarioId] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const reset = () => {
     setNombre('')
     setFecha(selectedDate)
     setUnidadId('')
-    setVeterinarioId('')
     setError(null)
   }
+
+  const selectedAssignment = assignments.find((item) => String(item.id_unidad) === unidadId)
+  const responsibleVet =
+    selectedAssignment?.personal.find(
+      (item) => item.es_responsable && item.rol_operativo === 'VETERINARIO',
+    ) ??
+    selectedAssignment?.personal.find((item) => item.rol_operativo === 'VETERINARIO')
 
   return (
     <Dialog
@@ -422,7 +438,7 @@ function CreateRouteDialog({
             Crear ruta programada
           </DialogTitle>
           <DialogDescription>
-            Asigna una unidad movil y un veterinario a la fecha seleccionada.
+            Crea la ruta con una unidad que ya tenga personal y zona asignados para la fecha seleccionada.
           </DialogDescription>
         </DialogHeader>
 
@@ -443,29 +459,32 @@ function CreateRouteDialog({
             className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-violet-300"
           >
             <option value="">Selecciona una unidad movil</option>
-            {units
-              .filter((unit) => unit.estado)
-              .map((unit) => (
-                <option key={unit.id_unidad} value={unit.id_unidad}>
-                  {unit.nombre} {unit.placa ? `- ${unit.placa}` : ''}
-                </option>
-              ))}
-          </select>
-          <select
-            value={veterinarioId}
-            onChange={(event) => setVeterinarioId(event.target.value)}
-            className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-violet-300"
-          >
-            <option value="">Selecciona un veterinario</option>
-            {veterinarians.map((vet) => (
-              <option key={vet.id} value={vet.id}>
-                {vet.nombre} - {vet.correo}
+            {assignments.map((assignment) => (
+              <option key={assignment.id_asignacion} value={assignment.id_unidad}>
+                {assignment.unidad.nombre} {assignment.unidad.placa ? `- ${assignment.unidad.placa}` : ''}
               </option>
             ))}
           </select>
-          {veterinarians.length === 0 ? (
+          {selectedAssignment ? (
+            <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-4 text-sm text-slate-700">
+              <p>
+                <span className="font-semibold text-violet-700">Zona:</span> {selectedAssignment.zona_nombre}
+              </p>
+              <p className="mt-1">
+                <span className="font-semibold text-violet-700">Veterinario responsable:</span>{' '}
+                {responsibleVet?.correo || 'Sin responsable veterinario'}
+              </p>
+            </div>
+          ) : null}
+          {assignments.length === 0 ? (
             <p className="text-sm text-amber-700">
-              No hay veterinarios activos disponibles para la veterinaria actual.
+              No hay unidades con asignación operativa activa para esta fecha. Primero configura
+              personal y zona en el módulo correspondiente.
+            </p>
+          ) : null}
+          {selectedAssignment && !responsibleVet ? (
+            <p className="text-sm text-amber-700">
+              Esta unidad no tiene veterinario responsable asignado para la fecha seleccionada.
             </p>
           ) : null}
           {error ? <p className="text-sm text-rose-700">{error}</p> : null}
@@ -487,8 +506,8 @@ function CreateRouteDialog({
             className="bg-violet-600 text-white hover:bg-violet-700"
             disabled={isSaving}
             onClick={async () => {
-              if (!nombre.trim() || !fecha || !unidadId || !veterinarioId) {
-                setError('Completa nombre, fecha, unidad y veterinario.')
+              if (!nombre.trim() || !fecha || !unidadId || !selectedAssignment || !responsibleVet) {
+                setError('Completa nombre, fecha y unidad con veterinario responsable asignado.')
                 return
               }
               setError(null)
@@ -496,7 +515,7 @@ function CreateRouteDialog({
                 nombre: nombre.trim(),
                 fecha,
                 id_unidad: Number(unidadId),
-                id_veterinario: Number(veterinarioId),
+                id_veterinario: responsibleVet.id_usuario,
               }).then(() => {
                 reset()
               }).catch((submitError: unknown) => {
@@ -826,6 +845,8 @@ function RouteCard({
   onAssignAppointment,
   onChangeDetailStatus,
   onDeleteDetail,
+  onDeleteRoute,
+  deletingRouteId,
   updatingDetailId,
 }: {
   route: RutaProgramada
@@ -835,6 +856,8 @@ function RouteCard({
   onAssignAppointment: (route: RutaProgramada) => void
   onChangeDetailStatus: (detailId: number, state: EstadoDetalleRuta) => Promise<void>
   onDeleteDetail: (detailId: number) => Promise<void>
+  onDeleteRoute: (routeId: number) => Promise<void>
+  deletingRouteId: number | null
   updatingDetailId: number | null
 }) {
   return (
@@ -872,6 +895,20 @@ function RouteCard({
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Agregar cita
+                    </Button>
+                ) : null}
+                {canManageRoutes ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="bg-rose-500/90 text-white hover:bg-rose-600"
+                    disabled={deletingRouteId === route.id_ruta}
+                    onClick={() => {
+                      void onDeleteRoute(route.id_ruta)
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Eliminar ruta
                   </Button>
                 ) : null}
                 <Button
@@ -998,31 +1035,29 @@ export function RutasProgramadasPage() {
   const { data: reservas = [] } = useGetReservasQuery(undefined, {
     skip: !canManageRoutes,
   })
+  const { data: assignments = [] } = useGetAsignacionesUnidadesQuery(
+    { fecha: selectedDate, estado: 'activo' },
+    { skip: !canManageRoutes },
+  )
 
   const [createUnidadMovil, createUnidadState] = useCreateUnidadMovilMutation()
   const [createRutaProgramada, createRutaState] = useCreateRutaProgramadaMutation()
   const [addDetalleRuta, addDetalleState] = useAddDetalleRutaMutation()
   const [updateDetalleRuta] = useUpdateDetalleRutaMutation()
   const [removeDetalleRuta] = useRemoveDetalleRutaMutation()
+  const [deleteRutaProgramada] = useDeleteRutaProgramadaMutation()
   const activeVeterinariaId = tenantVeterinaria?.id_veterinaria ?? user?.id_veterinaria ?? null
+  const [deletingRouteId, setDeletingRouteId] = useState<number | null>(null)
 
-  const veterinarians = useMemo(() => {
-    const activeVets = usuarios.filter(
-      (item) => item.rol === 'Veterinario' && item.estado === 'Activo',
-    )
-
-    const vetsFromCurrentTenant = activeVets.filter(
-      (item) => !activeVeterinariaId || item.id_veterinaria === activeVeterinariaId,
-    )
-
-    const source = vetsFromCurrentTenant.length > 0 ? vetsFromCurrentTenant : activeVets
-
-    return source.map((item) => ({
-      id: item.id_usuario ?? item.id,
-      nombre: item.nombre,
-      correo: item.correo,
-    }))
-  }, [activeVeterinariaId, usuarios])
+  const availableAssignments = useMemo(
+    () =>
+      assignments.filter((assignment) =>
+        assignment.personal.some(
+          (person) => person.rol_operativo === 'VETERINARIO' && person.estado,
+        ),
+      ),
+    [assignments],
+  )
 
   const metrics = useMemo(() => {
     const appointments = routes.reduce(
@@ -1143,6 +1178,25 @@ export function RutasProgramadasPage() {
     }
   }
 
+  async function handleDeleteRoute(routeId: number) {
+    if (!window.confirm('¿Deseas eliminar esta ruta programada? Se marcará como cancelada.')) return
+
+    try {
+      setDeletingRouteId(routeId)
+      await deleteRutaProgramada({ idRuta: routeId }).unwrap()
+      setExpandedRoutes((current) => {
+        const next = { ...current }
+        delete next[routeId]
+        return next
+      })
+      setFeedback('La ruta fue cancelada correctamente.')
+    } catch (error) {
+      setFeedback(getApiErrorMessage(error, 'No se pudo eliminar la ruta programada.'))
+    } finally {
+      setDeletingRouteId(null)
+    }
+  }
+
   if (!canAccess) {
     return (
       <section className="space-y-4">
@@ -1162,8 +1216,7 @@ export function RutasProgramadasPage() {
         open={createRouteOpen}
         onOpenChange={setCreateRouteOpen}
         selectedDate={selectedDate}
-        units={unidades}
-        veterinarians={veterinarians}
+        assignments={availableAssignments}
         tenantName={tenantVeterinaria?.nombre ?? null}
         onSubmit={handleCreateRoute}
         isSaving={createRutaState.isLoading}
@@ -1316,6 +1369,7 @@ export function RutasProgramadasPage() {
               expanded={Boolean(expandedRoutes[route.id_ruta])}
               updatingDetailId={updatingDetailId}
               canManageRoutes={canManageRoutes}
+              deletingRouteId={deletingRouteId}
               onAssignAppointment={(selectedRoute) => {
                 setFeedback(null)
                 setSelectedRouteForAssign(selectedRoute)
@@ -1323,6 +1377,7 @@ export function RutasProgramadasPage() {
               }}
               onChangeDetailStatus={handleChangeDetailStatus}
               onDeleteDetail={handleDeleteDetail}
+              onDeleteRoute={handleDeleteRoute}
               onToggle={() =>
                 setExpandedRoutes((current) => ({
                   ...current,
