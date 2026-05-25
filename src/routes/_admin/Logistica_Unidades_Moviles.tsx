@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { GestionarUnidadesMovilesScreen } from '@/app/features/UnidadesMovilesLogistica'
 
-export const Route = createFileRoute('/_admin/Unidades_Moviles')({
-  component: UnidadesMovilesAdminPage,
+export const Route = createFileRoute('/_admin/Logistica_Unidades_Moviles')({
+  component: LogisticaUnidadesMovilesPage,
 })
 
-function UnidadesMovilesAdminPage() {
+function LogisticaUnidadesMovilesPage() {
   return <GestionarUnidadesMovilesScreen />
 }

@@ -27,6 +27,10 @@ import { Route as AdminDashboardRouteImport } from './routes/_admin/dashboard'
 import { Route as AdminBitacoraRouteImport } from './routes/_admin/bitacora'
 import { Route as AdminUnidades_MovilesRouteImport } from './routes/_admin/Unidades_Moviles'
 import { Route as AdminRutas_ProgramadasRouteImport } from './routes/_admin/Rutas_Programadas'
+import { Route as AdminLogistica_Unidades_MovilesRouteImport } from './routes/_admin/Logistica_Unidades_Moviles'
+import { Route as AdminLogistica_Rutas_ProgramadasRouteImport } from './routes/_admin/Logistica_Rutas_Programadas'
+import { Route as AdminLogistica_Asignar_Servicios_MovilesRouteImport } from './routes/_admin/Logistica_Asignar_Servicios_Moviles'
+import { Route as AdminLogistica_Asignar_Personal_ZonasRouteImport } from './routes/_admin/Logistica_Asignar_Personal_Zonas'
 import { Route as AdminGestionar_UsuariosRouteImport } from './routes/_admin/Gestionar_Usuarios'
 import { Route as AdminGestionar_Servicios_Precios_CatalogoRouteImport } from './routes/_admin/Gestionar_Servicios_Precios_Catalogo'
 import { Route as AdminGestionar_Roles_PermisosRouteImport } from './routes/_admin/Gestionar_Roles_Permisos'
@@ -133,6 +137,30 @@ const AdminRutas_ProgramadasRoute = AdminRutas_ProgramadasRouteImport.update({
   path: '/Rutas_Programadas',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminLogistica_Unidades_MovilesRoute =
+  AdminLogistica_Unidades_MovilesRouteImport.update({
+    id: '/Logistica_Unidades_Moviles',
+    path: '/Logistica_Unidades_Moviles',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminLogistica_Rutas_ProgramadasRoute =
+  AdminLogistica_Rutas_ProgramadasRouteImport.update({
+    id: '/Logistica_Rutas_Programadas',
+    path: '/Logistica_Rutas_Programadas',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminLogistica_Asignar_Servicios_MovilesRoute =
+  AdminLogistica_Asignar_Servicios_MovilesRouteImport.update({
+    id: '/Logistica_Asignar_Servicios_Moviles',
+    path: '/Logistica_Asignar_Servicios_Moviles',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminLogistica_Asignar_Personal_ZonasRoute =
+  AdminLogistica_Asignar_Personal_ZonasRouteImport.update({
+    id: '/Logistica_Asignar_Personal_Zonas',
+    path: '/Logistica_Asignar_Personal_Zonas',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminGestionar_UsuariosRoute = AdminGestionar_UsuariosRouteImport.update({
   id: '/Gestionar_Usuarios',
   path: '/Gestionar_Usuarios',
@@ -249,6 +277,10 @@ export interface FileRoutesByFullPath {
   '/Gestionar_Roles_Permisos': typeof AdminGestionar_Roles_PermisosRoute
   '/Gestionar_Servicios_Precios_Catalogo': typeof AdminGestionar_Servicios_Precios_CatalogoRoute
   '/Gestionar_Usuarios': typeof AdminGestionar_UsuariosRoute
+  '/Logistica_Asignar_Personal_Zonas': typeof AdminLogistica_Asignar_Personal_ZonasRoute
+  '/Logistica_Asignar_Servicios_Moviles': typeof AdminLogistica_Asignar_Servicios_MovilesRoute
+  '/Logistica_Rutas_Programadas': typeof AdminLogistica_Rutas_ProgramadasRoute
+  '/Logistica_Unidades_Moviles': typeof AdminLogistica_Unidades_MovilesRoute
   '/Rutas_Programadas': typeof AdminRutas_ProgramadasRoute
   '/Unidades_Moviles': typeof AdminUnidades_MovilesRoute
   '/bitacora': typeof AdminBitacoraRoute
@@ -284,6 +316,10 @@ export interface FileRoutesByTo {
   '/Gestionar_Roles_Permisos': typeof AdminGestionar_Roles_PermisosRoute
   '/Gestionar_Servicios_Precios_Catalogo': typeof AdminGestionar_Servicios_Precios_CatalogoRoute
   '/Gestionar_Usuarios': typeof AdminGestionar_UsuariosRoute
+  '/Logistica_Asignar_Personal_Zonas': typeof AdminLogistica_Asignar_Personal_ZonasRoute
+  '/Logistica_Asignar_Servicios_Moviles': typeof AdminLogistica_Asignar_Servicios_MovilesRoute
+  '/Logistica_Rutas_Programadas': typeof AdminLogistica_Rutas_ProgramadasRoute
+  '/Logistica_Unidades_Moviles': typeof AdminLogistica_Unidades_MovilesRoute
   '/Rutas_Programadas': typeof AdminRutas_ProgramadasRoute
   '/Unidades_Moviles': typeof AdminUnidades_MovilesRoute
   '/bitacora': typeof AdminBitacoraRoute
@@ -322,6 +358,10 @@ export interface FileRoutesById {
   '/_admin/Gestionar_Roles_Permisos': typeof AdminGestionar_Roles_PermisosRoute
   '/_admin/Gestionar_Servicios_Precios_Catalogo': typeof AdminGestionar_Servicios_Precios_CatalogoRoute
   '/_admin/Gestionar_Usuarios': typeof AdminGestionar_UsuariosRoute
+  '/_admin/Logistica_Asignar_Personal_Zonas': typeof AdminLogistica_Asignar_Personal_ZonasRoute
+  '/_admin/Logistica_Asignar_Servicios_Moviles': typeof AdminLogistica_Asignar_Servicios_MovilesRoute
+  '/_admin/Logistica_Rutas_Programadas': typeof AdminLogistica_Rutas_ProgramadasRoute
+  '/_admin/Logistica_Unidades_Moviles': typeof AdminLogistica_Unidades_MovilesRoute
   '/_admin/Rutas_Programadas': typeof AdminRutas_ProgramadasRoute
   '/_admin/Unidades_Moviles': typeof AdminUnidades_MovilesRoute
   '/_admin/bitacora': typeof AdminBitacoraRoute
@@ -360,6 +400,10 @@ export interface FileRouteTypes {
     | '/Gestionar_Roles_Permisos'
     | '/Gestionar_Servicios_Precios_Catalogo'
     | '/Gestionar_Usuarios'
+    | '/Logistica_Asignar_Personal_Zonas'
+    | '/Logistica_Asignar_Servicios_Moviles'
+    | '/Logistica_Rutas_Programadas'
+    | '/Logistica_Unidades_Moviles'
     | '/Rutas_Programadas'
     | '/Unidades_Moviles'
     | '/bitacora'
@@ -395,6 +439,10 @@ export interface FileRouteTypes {
     | '/Gestionar_Roles_Permisos'
     | '/Gestionar_Servicios_Precios_Catalogo'
     | '/Gestionar_Usuarios'
+    | '/Logistica_Asignar_Personal_Zonas'
+    | '/Logistica_Asignar_Servicios_Moviles'
+    | '/Logistica_Rutas_Programadas'
+    | '/Logistica_Unidades_Moviles'
     | '/Rutas_Programadas'
     | '/Unidades_Moviles'
     | '/bitacora'
@@ -432,6 +480,10 @@ export interface FileRouteTypes {
     | '/_admin/Gestionar_Roles_Permisos'
     | '/_admin/Gestionar_Servicios_Precios_Catalogo'
     | '/_admin/Gestionar_Usuarios'
+    | '/_admin/Logistica_Asignar_Personal_Zonas'
+    | '/_admin/Logistica_Asignar_Servicios_Moviles'
+    | '/_admin/Logistica_Rutas_Programadas'
+    | '/_admin/Logistica_Unidades_Moviles'
     | '/_admin/Rutas_Programadas'
     | '/_admin/Unidades_Moviles'
     | '/_admin/bitacora'
@@ -591,6 +643,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRutas_ProgramadasRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/Logistica_Unidades_Moviles': {
+      id: '/_admin/Logistica_Unidades_Moviles'
+      path: '/Logistica_Unidades_Moviles'
+      fullPath: '/Logistica_Unidades_Moviles'
+      preLoaderRoute: typeof AdminLogistica_Unidades_MovilesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/Logistica_Rutas_Programadas': {
+      id: '/_admin/Logistica_Rutas_Programadas'
+      path: '/Logistica_Rutas_Programadas'
+      fullPath: '/Logistica_Rutas_Programadas'
+      preLoaderRoute: typeof AdminLogistica_Rutas_ProgramadasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/Logistica_Asignar_Servicios_Moviles': {
+      id: '/_admin/Logistica_Asignar_Servicios_Moviles'
+      path: '/Logistica_Asignar_Servicios_Moviles'
+      fullPath: '/Logistica_Asignar_Servicios_Moviles'
+      preLoaderRoute: typeof AdminLogistica_Asignar_Servicios_MovilesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/Logistica_Asignar_Personal_Zonas': {
+      id: '/_admin/Logistica_Asignar_Personal_Zonas'
+      path: '/Logistica_Asignar_Personal_Zonas'
+      fullPath: '/Logistica_Asignar_Personal_Zonas'
+      preLoaderRoute: typeof AdminLogistica_Asignar_Personal_ZonasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/Gestionar_Usuarios': {
       id: '/_admin/Gestionar_Usuarios'
       path: '/Gestionar_Usuarios'
@@ -734,6 +814,10 @@ interface AdminRouteChildren {
   AdminGestionar_Roles_PermisosRoute: typeof AdminGestionar_Roles_PermisosRoute
   AdminGestionar_Servicios_Precios_CatalogoRoute: typeof AdminGestionar_Servicios_Precios_CatalogoRoute
   AdminGestionar_UsuariosRoute: typeof AdminGestionar_UsuariosRoute
+  AdminLogistica_Asignar_Personal_ZonasRoute: typeof AdminLogistica_Asignar_Personal_ZonasRoute
+  AdminLogistica_Asignar_Servicios_MovilesRoute: typeof AdminLogistica_Asignar_Servicios_MovilesRoute
+  AdminLogistica_Rutas_ProgramadasRoute: typeof AdminLogistica_Rutas_ProgramadasRoute
+  AdminLogistica_Unidades_MovilesRoute: typeof AdminLogistica_Unidades_MovilesRoute
   AdminRutas_ProgramadasRoute: typeof AdminRutas_ProgramadasRoute
   AdminUnidades_MovilesRoute: typeof AdminUnidades_MovilesRoute
   AdminBitacoraRoute: typeof AdminBitacoraRoute
@@ -759,6 +843,12 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGestionar_Servicios_Precios_CatalogoRoute:
     AdminGestionar_Servicios_Precios_CatalogoRoute,
   AdminGestionar_UsuariosRoute: AdminGestionar_UsuariosRoute,
+  AdminLogistica_Asignar_Personal_ZonasRoute:
+    AdminLogistica_Asignar_Personal_ZonasRoute,
+  AdminLogistica_Asignar_Servicios_MovilesRoute:
+    AdminLogistica_Asignar_Servicios_MovilesRoute,
+  AdminLogistica_Rutas_ProgramadasRoute: AdminLogistica_Rutas_ProgramadasRoute,
+  AdminLogistica_Unidades_MovilesRoute: AdminLogistica_Unidades_MovilesRoute,
   AdminRutas_ProgramadasRoute: AdminRutas_ProgramadasRoute,
   AdminUnidades_MovilesRoute: AdminUnidades_MovilesRoute,
   AdminBitacoraRoute: AdminBitacoraRoute,
