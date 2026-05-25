@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Search,
   Filter,
   LayoutDashboard,
   Calendar,
-  AlertTriangle,
+  Mic,
   ShoppingBag,
   TrendingUp,
   RotateCcw,
@@ -15,6 +15,7 @@ import {
 import { Card, CardContent } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { Button } from '#/components/ui/button'
+import { useAppSelector } from '#/store/hooks'
 import {
   Select,
   SelectContent,
@@ -31,7 +32,6 @@ import {
   TableRow,
 } from '#/components/ui/table'
 import { Badge } from '#/components/ui/badge'
-// Reemplazamos Tabs por una implementación con botones locales
 
 // Mock data
 const mockKPIs = [
@@ -48,9 +48,222 @@ const mockReports = [
   { id: 'CIT-00089', tipo: 'Consulta general', cliente: 'Jorge Vaca / Toby', estado: 'Fallido', fecha: '07/05/2026', via: 'No' },
   { id: 'PED-00061', tipo: 'Pedido producto', cliente: 'Sofía Castro / Nala', estado: 'Finalizado', fecha: '06/05/2026', via: 'SÍ' },
 ]
+//link de n8n
+const n8nWebhookUrl = 'https://petvet.app.n8n.cloud/webhook/chat'
 
 export default function ReportManagementScreen() {
+  // Obtener usuario directamente del store (ya existe porque hay sesión)
+  const user = useAppSelector((state) => state.auth.user)
+  
   const [searchTerm, setSearchTerm] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const [isSendingAudio, setIsSendingAudio] = useState(false)
+  const [recordingError, setRecordingError] = useState<string | null>(null)
+  const [audioReady, setAudioReady] = useState(false)
+  const [transcription, setTranscription] = useState<string | null>(null)
+  const [interimTranscript, setInterimTranscript] = useState<string>('')
+  const recognitionRef = useRef<any>(null)
+
+  // Datos del usuario (ya existen porque hay sesión activa)
+  const userEmail = user?.correo
+  const userId = user?.id_usuario
+  const userVeterinariaId = user?.id_veterinaria
+  const canRecordAudio = Boolean(userEmail && userId != null && userVeterinariaId != null)
+
+  const getExtensionFromContentType = (contentType: string) => {
+    if (contentType.includes('pdf')) return 'pdf'
+    if (contentType.includes('spreadsheet') || contentType.includes('excel')) return 'xlsx'
+    if (contentType.includes('csv')) return 'csv'
+    if (contentType.includes('json')) return 'json'
+    if (contentType.includes('text/plain')) return 'txt'
+    if (contentType.includes('text/')) return 'txt'
+    return 'bin'
+  }
+
+  const extractFilenameFromContentDisposition = (header: string) => {
+    const match = /filename\*?=([^;]+)/i.exec(header)
+    if (!match) return null
+
+    let filename = match[1].trim()
+    if (filename.startsWith("UTF-8''")) {
+      filename = decodeURIComponent(filename.replace("UTF-8''", ''))
+    }
+    filename = filename.replace(/['"\s]/g, '')
+    return filename || null
+  }
+
+  const downloadFile = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  const sendTranscriptToWebhook = async (transcriptText: string) => {
+    if (!canRecordAudio) {
+      throw new Error('No se encontró usuario autenticado con veterinaria asociada.')
+    }
+
+    setIsSendingAudio(true)
+    setTranscription(null)
+    setRecordingError(null)
+    setAudioReady(false)
+
+    try {
+      const payload = {
+        action: 'sendMessage',
+        sessionId: `session${userId}49c3832dfefe4505b87442`,
+        chatInput: transcriptText,
+        email: userEmail || '',
+        id_veterinaria: userVeterinariaId,
+        webhookUrl: n8nWebhookUrl,
+        executionMode: 'production',
+      }
+
+      const response = await fetch(n8nWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status} al enviar audio`)
+      }
+
+      const contentType = response.headers.get('content-type') ?? ''
+      const contentDisposition = response.headers.get('content-disposition') ?? ''
+
+      if (contentType.includes('application/json') || contentType.includes('text/json') || contentType.startsWith('text/')) {
+        const text = contentType.includes('application/json')
+          ? (() => {
+              const json = response.json() as Promise<Record<string, unknown>>
+              return json.then((data) =>
+                typeof data.transcription === 'string'
+                  ? data.transcription
+                  : typeof data.text === 'string'
+                  ? data.text
+                  : typeof data.message === 'string'
+                  ? data.message
+                  : JSON.stringify(data, null, 2),
+              )
+            })()
+          : response.text()
+
+        const transcriptionText = await text
+        setTranscription(transcriptionText)
+        const filename = `transcripcion_${Date.now()}.txt`
+        downloadFile(new Blob([transcriptionText], { type: 'text/plain' }), filename)
+        setAudioReady(true)
+        return response
+      }
+
+      const buffer = await response.arrayBuffer()
+      const blob = new Blob([buffer], { type: contentType || 'application/octet-stream' })
+      const filename =
+        extractFilenameFromContentDisposition(contentDisposition) ||
+        `reporte_n8n_${Date.now()}.${getExtensionFromContentType(contentType)}`
+
+      downloadFile(blob, filename)
+      setAudioReady(true)
+      return response
+    } catch (error) {
+      setRecordingError('No se pudo enviar el audio. Intenta nuevamente.')
+      throw error
+    } finally {
+      setIsSendingAudio(false)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
+    }
+  }, [])
+
+  const handleStartRecording = async () => {
+    setRecordingError(null)
+    setAudioReady(false)
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      setRecordingError('Tu navegador no soporta transcripción de voz.')
+      return
+    }
+
+    try {
+      const recognition = new SpeechRecognition()
+      recognition.lang = 'es-ES'
+      recognition.interimResults = true
+      recognition.continuous = true
+      recognition.maxAlternatives = 1
+      recognitionRef.current = recognition
+      let finalTranscript = ''
+
+      recognition.onresult = (event: any) => {
+        let interim = ''
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const result = event.results[i]
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript
+          } else {
+            interim += result[0].transcript
+          }
+        }
+        setInterimTranscript(interim)
+        setTranscription(finalTranscript + interim)
+      }
+
+      recognition.onerror = () => {
+        setRecordingError('Error al transcribir el audio.')
+        setIsRecording(false)
+      }
+
+      recognition.onend = async () => {
+        recognitionRef.current = null
+        setIsRecording(false)
+
+        const finalText = finalTranscript.trim()
+        if (!finalText) {
+          setRecordingError('No se detectó voz para transcribir.')
+          return
+        }
+
+        await sendTranscriptToWebhook(finalText)
+      }
+
+      recognition.start()
+      setIsRecording(true)
+    } catch (error) {
+      setRecordingError('No se pudo iniciar la transcripción de audio.')
+    }
+  }
+
+  const handleStopRecording = () => {
+    if (!recognitionRef.current) {
+      setRecordingError('No hay transcripción activa.')
+      return
+    }
+
+    setIsRecording(false)
+    recognitionRef.current.stop()
+  }
+
+  const handleToggleRecording = async () => {
+    if (isRecording) {
+      handleStopRecording()
+      return
+    }
+
+    await handleStartRecording()
+  }
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 bg-gray-50/50 min-h-screen">
@@ -165,29 +378,67 @@ export default function ReportManagementScreen() {
         </div>
       </div>
 
-      {/* Security Alert */}
-      <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl flex items-start gap-3">
-        <div className="p-2 bg-amber-100 rounded-lg">
-          <AlertTriangle className="w-5 h-5 text-amber-600" />
-        </div>
-        <div>
-          <p className="text-sm font-bold text-amber-900">Solo se muestran datos de Pet Home</p>
-          <p className="text-xs text-amber-800">
-            Acceso a reportes de otras veterinarias está bloqueado. Intento registrado en bitácora.
-          </p>
+      {/* Audio Recording */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-purple-100 rounded-2xl">
+              <Mic className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Enviar audio para reportes</p>
+              <p className="text-xs text-gray-500">
+                Graba una nota de voz y envíala directamente al webhook n8n para procesar el reporte.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <Button
+              onClick={handleToggleRecording}
+              disabled={isSendingAudio || !canRecordAudio}
+              className={`h-12 rounded-xl ${isRecording ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+            >
+              <Mic className="w-4 h-4 mr-2" />
+              {isRecording ? 'Detener y enviar audio' : 'Grabar audio'}
+            </Button>
+            <span className="text-sm text-gray-500">
+              {isRecording
+                ? 'Transcribiendo... habla ahora.'
+                : isSendingAudio
+                  ? 'Enviando transcripción...'
+                  : audioReady
+                    ? 'Transcripción enviada correctamente.'
+                    : canRecordAudio
+                      ? 'Presiona para transcribir y enviar audio.'
+                      : 'Necesitas iniciar sesión para enviar audio.'}
+            </span>
+          </div>
+
+          {recordingError && (
+            <p className="text-sm text-rose-600">{recordingError}</p>
+          )}
+
+          {transcription ? (
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-gray-700 mb-2">Transcripción de audio</p>
+              <p className="whitespace-pre-line text-sm text-gray-600">{transcription}</p>
+            </div>
+          ) : null}
         </div>
       </div>
 
-      {/* Tabs (Implementación con botones) */}
+      {/* Tabs */}
       <div className="flex flex-wrap gap-2">
         {['Todos', 'Citas', 'Servicios', 'Pedidos'].map((tab) => (
           <Button
             key={tab}
             variant="outline"
-            className={`rounded-full px-8 py-2 h-auto font-medium transition-all ${(tab === 'Todos' && searchTerm === '') // Simulación de tab activo
+            className={`rounded-full px-8 py-2 h-auto font-medium transition-all ${
+              tab === 'Todos' && searchTerm === ''
                 ? 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
                 : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-              }`}
+            }`}
           >
             {tab}
           </Button>
@@ -222,11 +473,12 @@ export default function ReportManagementScreen() {
                 <TableCell>
                   <Badge
                     variant="secondary"
-                    className={`rounded-full px-3 py-1 font-medium ${report.estado === 'Finalizado' ? 'bg-emerald-100 text-emerald-700' :
-                        report.estado === 'En proceso' ? 'bg-orange-100 text-orange-700' :
-                          report.estado === 'Pendiente' ? 'bg-purple-100 text-purple-700' :
-                            'bg-rose-100 text-rose-700'
-                      }`}
+                    className={`rounded-full px-3 py-1 font-medium ${
+                      report.estado === 'Finalizado' ? 'bg-emerald-100 text-emerald-700' :
+                      report.estado === 'En proceso' ? 'bg-orange-100 text-orange-700' :
+                      report.estado === 'Pendiente' ? 'bg-purple-100 text-purple-700' :
+                      'bg-rose-100 text-rose-700'
+                    }`}
                   >
                     {report.estado}
                   </Badge>
