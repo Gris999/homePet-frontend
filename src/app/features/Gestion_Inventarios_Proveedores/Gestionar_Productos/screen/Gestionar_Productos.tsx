@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAppSelector } from '#/store/hooks'
+import { toast } from 'sonner'
 import { useGetCategoriasQuery } from '#/store/inventario/categoriasApi'
 import { useGetProveedoresQuery } from '#/store/inventario/proveedoresApi'
 import {
@@ -170,6 +171,57 @@ export function GestionarProductos() {
     }
   }, [productos])
 
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (error && typeof error === 'object' && 'data' in error) {
+      const data = (error as { data?: unknown }).data
+
+      if (typeof data === 'string' && data.trim()) {
+        return data
+      }
+
+      if (data && typeof data === 'object') {
+        const payload = data as Record<string, unknown>
+
+        if (typeof payload.detail === 'string' && payload.detail.trim()) {
+          return payload.detail
+        }
+
+        const fieldEntries = Object.entries(payload).filter(([key]) => key !== 'detail')
+        if (fieldEntries.length === 1) {
+          const [fieldName, fieldValue] = fieldEntries[0]
+          const firstMessage = Array.isArray(fieldValue)
+            ? fieldValue.find((item) => typeof item === 'string' && item.trim())
+            : typeof fieldValue === 'string'
+              ? fieldValue
+              : null
+
+          if (typeof firstMessage === 'string' && firstMessage.trim()) {
+            return `${fieldName}: ${firstMessage}`
+          }
+        }
+
+        const firstValue = Object.values(payload).find((value) => {
+          if (typeof value === 'string') return value.trim()
+          if (Array.isArray(value)) return value.length > 0
+          return false
+        })
+
+        if (typeof firstValue === 'string' && firstValue.trim()) {
+          return firstValue
+        }
+
+        if (Array.isArray(firstValue) && firstValue.length > 0) {
+          const firstItem = firstValue[0]
+          if (typeof firstItem === 'string' && firstItem.trim()) {
+            return firstItem
+          }
+        }
+      }
+    }
+
+    return fallback
+  }
+
   const handleCreateProducto = () => {
     setEditingProducto(undefined)
     setIsDialogOpen(true)
@@ -201,6 +253,9 @@ export function GestionarProductos() {
 
       setIsDialogOpen(false)
       setEditingProducto(undefined)
+      toast.success(editingProducto ? 'Producto actualizado correctamente.' : 'Producto creado correctamente.')
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo guardar el producto.'))
     } finally {
       setIsLoading(false)
     }
