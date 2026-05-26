@@ -192,12 +192,12 @@ export function ProductoForm({
       newErrors.id_categoria_producto = 'La categoria es requerida'
     }
 
-    if (Number(formData.precio_compra) < 0) {
-      newErrors.precio_compra = 'El precio de compra debe ser positivo'
+    if (Number(formData.precio_compra) <= 0) {
+      newErrors.precio_compra = 'El precio de compra debe ser mayor a 0'
     }
 
-    if (Number(formData.precio_venta) < 0) {
-      newErrors.precio_venta = 'El precio de venta debe ser positivo'
+    if (Number(formData.precio_venta) <= 0) {
+      newErrors.precio_venta = 'El precio de venta debe ser mayor a 0'
     }
 
     if (

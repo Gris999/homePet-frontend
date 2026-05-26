@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Categoria, CategoriaFormData } from '../types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +32,15 @@ export function CategoriaForm({
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    setFormData({
+      nombre: categoria?.nombre || '',
+      descripcion: categoria?.descripcion || '',
+      estado: categoria?.estado || 'Activo',
+    })
+    setErrors({})
+  }, [categoria])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}

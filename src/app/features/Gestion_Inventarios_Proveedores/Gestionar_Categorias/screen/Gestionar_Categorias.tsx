@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 
 import { useAppSelector } from '#/store/hooks'
+import { toast } from 'sonner'
 import {
   useGetCategoriasQuery,
   useCreateCategoriaMutation,
@@ -54,11 +55,64 @@ export function GestionarCategorias() {
   const totalActivas = categorias.filter((c) => c.estado === 'Activo').length
   const totalInactivas = categorias.filter((c) => c.estado === 'Inactivo').length
 
+  const getErrorMessage = (error: unknown, fallback: string) => {
+    if (error && typeof error === 'object' && 'data' in error) {
+      const data = (error as { data?: unknown }).data
+
+      if (typeof data === 'string' && data.trim()) {
+        return data
+      }
+
+      if (data && typeof data === 'object') {
+        const payload = data as Record<string, unknown>
+        if (typeof payload.detail === 'string' && payload.detail.trim()) {
+          return payload.detail
+        }
+
+        const fieldEntries = Object.entries(payload).filter(([key]) => key !== 'detail')
+        if (fieldEntries.length === 1) {
+          const [fieldName, fieldValue] = fieldEntries[0]
+          const firstMessage = Array.isArray(fieldValue)
+            ? fieldValue.find((item) => typeof item === 'string' && item.trim())
+            : typeof fieldValue === 'string'
+              ? fieldValue
+              : null
+
+          if (typeof firstMessage === 'string' && firstMessage.trim()) {
+            return `${fieldName}: ${firstMessage}`
+          }
+        }
+
+        const firstValue = Object.values(payload).find((value) => {
+          if (typeof value === 'string') return value.trim()
+          if (Array.isArray(value)) return value.length > 0
+          return false
+        })
+
+        if (typeof firstValue === 'string' && firstValue.trim()) {
+          return firstValue
+        }
+
+        if (Array.isArray(firstValue) && firstValue.length > 0) {
+          const firstItem = firstValue[0]
+          if (typeof firstItem === 'string' && firstItem.trim()) {
+            return firstItem
+          }
+        }
+      }
+    }
+
+    return fallback
+  }
+
   const handleCreate = async (data: CategoriaFormData) => {
     setIsLoading(true)
     try {
       await createCategoria(data).unwrap()
+      toast.success('Categoría creada correctamente.')
       setDialogOpen(false)
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo guardar la categoría.'))
     } finally {
       setIsLoading(false)
     }
@@ -70,8 +124,11 @@ export function GestionarCategorias() {
     setIsLoading(true)
     try {
       await updateCategoria({ id: selectedCategoria.id_categoria_producto, data }).unwrap()
+      toast.success('Categoría actualizada correctamente.')
       setDialogOpen(false)
       setSelectedCategoria(undefined)
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo actualizar la categoría.'))
     } finally {
       setIsLoading(false)
     }
@@ -83,8 +140,11 @@ export function GestionarCategorias() {
     setIsLoading(true)
     try {
       await deleteCategoria(selectedCategoria.id_categoria_producto).unwrap()
+      toast.success('Categoría eliminada correctamente.')
       setDeleteOpen(false)
       setSelectedCategoria(undefined)
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'No se pudo eliminar la categoría.'))
     } finally {
       setIsLoading(false)
     }

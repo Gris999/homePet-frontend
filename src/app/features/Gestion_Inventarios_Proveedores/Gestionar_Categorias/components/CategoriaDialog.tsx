@@ -59,7 +59,6 @@ export function CategoriaDialog({
             categoria={categoria}
             onSubmit={(data) => {
               onSubmit(data)
-              onOpenChange(false)
             }}
             isLoading={isLoading}
           />
