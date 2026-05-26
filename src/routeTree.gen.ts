@@ -38,6 +38,8 @@ import { Route as AdminLogistica_Unidades_MovilesRouteImport } from './routes/_a
 import { Route as AdminLogistica_Rutas_ProgramadasRouteImport } from './routes/_admin/Logistica_Rutas_Programadas'
 import { Route as AdminLogistica_Asignar_Servicios_MovilesRouteImport } from './routes/_admin/Logistica_Asignar_Servicios_Moviles'
 import { Route as AdminLogistica_Asignar_Personal_ZonasRouteImport } from './routes/_admin/Logistica_Asignar_Personal_Zonas'
+import { Route as AdminInventario_MovimientosRouteImport } from './routes/_admin/Inventario_Movimientos'
+import { Route as AdminInventario_ControlRouteImport } from './routes/_admin/Inventario_Control'
 import { Route as AdminGestionar_UsuariosRouteImport } from './routes/_admin/Gestionar_Usuarios'
 import { Route as AdminGestionar_Servicios_Precios_CatalogoRouteImport } from './routes/_admin/Gestionar_Servicios_Precios_Catalogo'
 import { Route as AdminGestionar_Roles_PermisosRouteImport } from './routes/_admin/Gestionar_Roles_Permisos'
@@ -203,6 +205,17 @@ const AdminLogistica_Asignar_Personal_ZonasRoute =
     path: '/Logistica_Asignar_Personal_Zonas',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminInventario_MovimientosRoute =
+  AdminInventario_MovimientosRouteImport.update({
+    id: '/Inventario_Movimientos',
+    path: '/Inventario_Movimientos',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminInventario_ControlRoute = AdminInventario_ControlRouteImport.update({
+  id: '/Inventario_Control',
+  path: '/Inventario_Control',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminGestionar_UsuariosRoute = AdminGestionar_UsuariosRouteImport.update({
   id: '/Gestionar_Usuarios',
   path: '/Gestionar_Usuarios',
@@ -319,6 +332,8 @@ export interface FileRoutesByFullPath {
   '/Gestionar_Roles_Permisos': typeof AdminGestionar_Roles_PermisosRoute
   '/Gestionar_Servicios_Precios_Catalogo': typeof AdminGestionar_Servicios_Precios_CatalogoRoute
   '/Gestionar_Usuarios': typeof AdminGestionar_UsuariosRoute
+  '/Inventario_Control': typeof AdminInventario_ControlRoute
+  '/Inventario_Movimientos': typeof AdminInventario_MovimientosRoute
   '/Logistica_Asignar_Personal_Zonas': typeof AdminLogistica_Asignar_Personal_ZonasRoute
   '/Logistica_Asignar_Servicios_Moviles': typeof AdminLogistica_Asignar_Servicios_MovilesRoute
   '/Logistica_Rutas_Programadas': typeof AdminLogistica_Rutas_ProgramadasRoute
@@ -365,6 +380,8 @@ export interface FileRoutesByTo {
   '/Gestionar_Roles_Permisos': typeof AdminGestionar_Roles_PermisosRoute
   '/Gestionar_Servicios_Precios_Catalogo': typeof AdminGestionar_Servicios_Precios_CatalogoRoute
   '/Gestionar_Usuarios': typeof AdminGestionar_UsuariosRoute
+  '/Inventario_Control': typeof AdminInventario_ControlRoute
+  '/Inventario_Movimientos': typeof AdminInventario_MovimientosRoute
   '/Logistica_Asignar_Personal_Zonas': typeof AdminLogistica_Asignar_Personal_ZonasRoute
   '/Logistica_Asignar_Servicios_Moviles': typeof AdminLogistica_Asignar_Servicios_MovilesRoute
   '/Logistica_Rutas_Programadas': typeof AdminLogistica_Rutas_ProgramadasRoute
@@ -414,6 +431,8 @@ export interface FileRoutesById {
   '/_admin/Gestionar_Roles_Permisos': typeof AdminGestionar_Roles_PermisosRoute
   '/_admin/Gestionar_Servicios_Precios_Catalogo': typeof AdminGestionar_Servicios_Precios_CatalogoRoute
   '/_admin/Gestionar_Usuarios': typeof AdminGestionar_UsuariosRoute
+  '/_admin/Inventario_Control': typeof AdminInventario_ControlRoute
+  '/_admin/Inventario_Movimientos': typeof AdminInventario_MovimientosRoute
   '/_admin/Logistica_Asignar_Personal_Zonas': typeof AdminLogistica_Asignar_Personal_ZonasRoute
   '/_admin/Logistica_Asignar_Servicios_Moviles': typeof AdminLogistica_Asignar_Servicios_MovilesRoute
   '/_admin/Logistica_Rutas_Programadas': typeof AdminLogistica_Rutas_ProgramadasRoute
@@ -463,6 +482,8 @@ export interface FileRouteTypes {
     | '/Gestionar_Roles_Permisos'
     | '/Gestionar_Servicios_Precios_Catalogo'
     | '/Gestionar_Usuarios'
+    | '/Inventario_Control'
+    | '/Inventario_Movimientos'
     | '/Logistica_Asignar_Personal_Zonas'
     | '/Logistica_Asignar_Servicios_Moviles'
     | '/Logistica_Rutas_Programadas'
@@ -509,6 +530,8 @@ export interface FileRouteTypes {
     | '/Gestionar_Roles_Permisos'
     | '/Gestionar_Servicios_Precios_Catalogo'
     | '/Gestionar_Usuarios'
+    | '/Inventario_Control'
+    | '/Inventario_Movimientos'
     | '/Logistica_Asignar_Personal_Zonas'
     | '/Logistica_Asignar_Servicios_Moviles'
     | '/Logistica_Rutas_Programadas'
@@ -557,6 +580,8 @@ export interface FileRouteTypes {
     | '/_admin/Gestionar_Roles_Permisos'
     | '/_admin/Gestionar_Servicios_Precios_Catalogo'
     | '/_admin/Gestionar_Usuarios'
+    | '/_admin/Inventario_Control'
+    | '/_admin/Inventario_Movimientos'
     | '/_admin/Logistica_Asignar_Personal_Zonas'
     | '/_admin/Logistica_Asignar_Servicios_Moviles'
     | '/_admin/Logistica_Rutas_Programadas'
@@ -804,6 +829,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminLogistica_Asignar_Personal_ZonasRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/Inventario_Movimientos': {
+      id: '/_admin/Inventario_Movimientos'
+      path: '/Inventario_Movimientos'
+      fullPath: '/Inventario_Movimientos'
+      preLoaderRoute: typeof AdminInventario_MovimientosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/Inventario_Control': {
+      id: '/_admin/Inventario_Control'
+      path: '/Inventario_Control'
+      fullPath: '/Inventario_Control'
+      preLoaderRoute: typeof AdminInventario_ControlRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/Gestionar_Usuarios': {
       id: '/_admin/Gestionar_Usuarios'
       path: '/Gestionar_Usuarios'
@@ -947,6 +986,8 @@ interface AdminRouteChildren {
   AdminGestionar_Roles_PermisosRoute: typeof AdminGestionar_Roles_PermisosRoute
   AdminGestionar_Servicios_Precios_CatalogoRoute: typeof AdminGestionar_Servicios_Precios_CatalogoRoute
   AdminGestionar_UsuariosRoute: typeof AdminGestionar_UsuariosRoute
+  AdminInventario_ControlRoute: typeof AdminInventario_ControlRoute
+  AdminInventario_MovimientosRoute: typeof AdminInventario_MovimientosRoute
   AdminLogistica_Asignar_Personal_ZonasRoute: typeof AdminLogistica_Asignar_Personal_ZonasRoute
   AdminLogistica_Asignar_Servicios_MovilesRoute: typeof AdminLogistica_Asignar_Servicios_MovilesRoute
   AdminLogistica_Rutas_ProgramadasRoute: typeof AdminLogistica_Rutas_ProgramadasRoute
@@ -977,6 +1018,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGestionar_Servicios_Precios_CatalogoRoute:
     AdminGestionar_Servicios_Precios_CatalogoRoute,
   AdminGestionar_UsuariosRoute: AdminGestionar_UsuariosRoute,
+  AdminInventario_ControlRoute: AdminInventario_ControlRoute,
+  AdminInventario_MovimientosRoute: AdminInventario_MovimientosRoute,
   AdminLogistica_Asignar_Personal_ZonasRoute:
     AdminLogistica_Asignar_Personal_ZonasRoute,
   AdminLogistica_Asignar_Servicios_MovilesRoute:

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import type { FormEvent } from 'react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import { useDemoCheckout } from '#/hooks/useDemoCheckout';
@@ -18,7 +17,6 @@ export const Route = createFileRoute('/_public/pricing')({
 });
 
 function PricingPage() {
-  const navigate = useNavigate();
   const { start, isLoading, error } = useDemoCheckout();
   const { startCheckout, isLoading: stripeLoading, error: stripeError } = useStripeCheckoutWeb();
   const [stripeFormError, setStripeFormError] = useState<string | null>(null);
@@ -38,18 +36,6 @@ function PricingPage() {
 
   const update = (key: keyof CheckoutDemoStartRequest, value: string | number) => {
     setPayload((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    const result = await start({
-      ...payload,
-      veterinaria_slug: payload.veterinaria_slug.trim().toLowerCase(),
-    });
-    navigate({
-      to: '/checkout-demo',
-      search: { token: result.checkout_token },
-    });
   };
 
   const validateForStripe = () => {
@@ -83,9 +69,9 @@ function PricingPage() {
     <main className="mx-auto w-full max-w-3xl px-4 py-12">
       <h1 className="text-3xl font-bold text-white">Pricing</h1>
       <div className="mt-6 rounded-xl bg-white p-6 text-slate-900">
-        <h2 className="text-xl font-bold">Comprar con Stripe</h2>
+        <h2 className="text-xl font-bold">Comprar plan</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Seras redirigido al checkout seguro de Stripe.
+          Completa tus datos y paga de forma segura con tarjeta.
         </p>
         <div className="mt-4 flex gap-2">
           {PLANS.map((plan) => (
@@ -109,22 +95,12 @@ function PricingPage() {
           onClick={onStripePay}
           className="mt-5 w-full bg-[#635BFF] hover:bg-[#564FE0]"
         >
-          {stripeLoading || isLoading ? 'Iniciando pago...' : 'Pagar con Stripe'}
+          {stripeLoading || isLoading
+            ? 'Iniciando pago...'
+            : 'Pagar con tarjeta debito/credito'}
         </Button>
       </div>
-      <form onSubmit={onSubmit} className="mt-6 grid gap-4 rounded-xl bg-white p-6 text-slate-900 sm:grid-cols-2">
-        <label className="mb-2 block text-sm font-medium sm:col-span-2">Elige un plan</label>
-        <select
-          className="w-full rounded-md border border-slate-300 px-3 py-2 sm:col-span-2"
-          value={payload.plan_id}
-          onChange={(e) => update('plan_id', Number(e.target.value))}
-        >
-          {PLANS.map((plan) => (
-            <option key={plan.id} value={plan.id}>
-              {plan.name}
-            </option>
-          ))}
-        </select>
+      <div className="mt-6 grid gap-4 rounded-xl bg-white p-6 text-slate-900 sm:grid-cols-2">
         <Input placeholder="Nombre veterinaria*" value={payload.veterinaria_nombre} onChange={(e) => update('veterinaria_nombre', e.target.value)} required />
         <Input placeholder="Slug veterinaria*" value={payload.veterinaria_slug} onChange={(e) => update('veterinaria_slug', e.target.value.toLowerCase().replace(/\s+/g, '-'))} pattern="^[a-z0-9-]+$" required />
         <Input placeholder="Correo veterinaria" type="email" value={payload.veterinaria_correo || ''} onChange={(e) => update('veterinaria_correo', e.target.value)} />
@@ -136,11 +112,7 @@ function PricingPage() {
         <Input placeholder="Password admin* (min 8)" type="password" minLength={8} value={payload.admin_password} onChange={(e) => update('admin_password', e.target.value)} required />
         <Input placeholder="Telefono admin" value={payload.admin_telefono || ''} onChange={(e) => update('admin_telefono', e.target.value)} />
         <Input placeholder="Direccion admin" value={payload.admin_direccion || ''} onChange={(e) => update('admin_direccion', e.target.value)} />
-        {error ? <p className="mt-3 text-sm text-red-600 sm:col-span-2">{error}</p> : null}
-        <Button disabled={isLoading} type="submit" className="mt-5 w-full bg-[#F97316] hover:bg-[#EA580C] sm:col-span-2">
-          {isLoading ? 'Iniciando checkout...' : 'Comprar ahora'}
-        </Button>
-      </form>
+      </div>
     </main>
   );
 }

@@ -46,6 +46,8 @@ type MenuChild = {
     | '/Gestionar_Categorias'
     | '/Gestionar_Proveedores'
     | '/Gestionar_Productos'
+    | '/Inventario_Control'
+    | '/Inventario_Movimientos'
   hasAccess?: boolean
 }
 
@@ -143,6 +145,14 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         icon: PackageSearch,
         children: [
           {
+            label: 'Control de Inventario',
+            to: '/Inventario_Control',
+          },
+          {
+            label: 'Movimientos de Inventario',
+            to: '/Inventario_Movimientos',
+          },
+          {
             label: 'Gestionar Productos',
             to: '/Gestionar_Productos',
           },
@@ -239,6 +249,8 @@ export function Sidebar({
 
     // Inventario y Proveedores
     '/Gestionar_Productos': true,
+    '/Inventario_Control': true,
+    '/Inventario_Movimientos': true,
     '/Gestionar_Categorias': true,
     '/Gestionar_Proveedores': true,
 
