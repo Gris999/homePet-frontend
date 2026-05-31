@@ -49,7 +49,7 @@ const mockReports = [
   { id: 'PED-00061', tipo: 'Pedido producto', cliente: 'Sofía Castro / Nala', estado: 'Finalizado', fecha: '06/05/2026', via: 'SÍ' },
 ]
 //link de n8n
-const n8nWebhookUrl = 'https://petvet.app.n8n.cloud/webhook/chat'
+const n8nWebhookUrl = 'https://petjs.app.n8n.cloud/webhook/chat'
 
 export default function ReportManagementScreen() {
   // Obtener usuario directamente del store (ya existe porque hay sesión)

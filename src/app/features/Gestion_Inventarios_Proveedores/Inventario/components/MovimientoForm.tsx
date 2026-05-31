@@ -29,6 +29,8 @@ const TIPOS_MOVIMIENTO: TipoMovimientoInventario[] = [
 type ProductoOption = {
   id: number;
   nombre: string;
+  requiere_control_vencimiento?: boolean;
+  dias_alerta_vencimiento?: number | null;
 };
 
 export function MovimientoForm({
@@ -47,8 +49,15 @@ export function MovimientoForm({
   const [cantidad, setCantidad] = useState('');
   const [idOrigen, setIdOrigen] = useState<number | null>(null);
   const [idDestino, setIdDestino] = useState<number | null>(null);
+  const [numeroLote, setNumeroLote] = useState('');
+  const [fechaVencimientoLote, setFechaVencimientoLote] = useState('');
   const [motivo, setMotivo] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
+
+  const productoSeleccionado = productos.find((p) => p.id === idProducto);
+  const requiereDatosLote =
+    (tipo === 'ENTRADA' || tipo === 'REPOSICION') &&
+    Boolean(productoSeleccionado?.requiere_control_vencimiento);
 
   const payload = useMemo<CreateMovimientoPayload | null>(() => {
     if (!idProducto) return null;
@@ -58,9 +67,11 @@ export function MovimientoForm({
       cantidad,
       id_punto_origen: idOrigen,
       id_punto_destino: idDestino,
+      numero_lote: requiereDatosLote ? numeroLote.trim() || null : null,
+      fecha_vencimiento_lote: requiereDatosLote ? fechaVencimientoLote || null : null,
       motivo: motivo.trim() || null,
     };
-  }, [tipo, idProducto, cantidad, idOrigen, idDestino, motivo]);
+  }, [tipo, idProducto, cantidad, idOrigen, idDestino, numeroLote, fechaVencimientoLote, motivo, requiereDatosLote]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -70,6 +81,12 @@ export function MovimientoForm({
     }
 
     const validationErrors = validateMovimientoPayload(payload);
+    if (requiereDatosLote && !numeroLote.trim()) {
+      validationErrors.push('El numero de lote es obligatorio para este producto.');
+    }
+    if (requiereDatosLote && !fechaVencimientoLote) {
+      validationErrors.push('La fecha de vencimiento del lote es obligatoria.');
+    }
     setErrors(validationErrors);
 
     if (validationErrors.length) {
@@ -80,6 +97,8 @@ export function MovimientoForm({
     await onSubmit(payload);
     setCantidad('');
     setMotivo('');
+    setNumeroLote('');
+    setFechaVencimientoLote('');
     if (!requiresOrigen(tipo)) setIdOrigen(null);
     if (!requiresDestino(tipo)) setIdDestino(null);
   };
@@ -129,6 +148,36 @@ export function MovimientoForm({
             placeholder="Detalle del movimiento"
           />
         </div>
+
+        {tipo === 'ENTRADA' || tipo === 'REPOSICION' ? (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 md:col-span-2">
+            {productoSeleccionado?.requiere_control_vencimiento
+              ? `Este producto requiere control de vencimiento. Debes registrar lote y fecha de vencimiento del lote.`
+              : 'Lote y vencimiento de lote aplican solo a productos con control de vencimiento activo.'}
+          </div>
+        ) : null}
+
+        {requiereDatosLote && (
+          <div className="space-y-1">
+            <label className="text-sm font-semibold text-slate-700">Numero de lote</label>
+            <Input
+              value={numeroLote}
+              onChange={(event) => setNumeroLote(event.target.value)}
+              placeholder="Ej: LOTE-2026-001"
+            />
+          </div>
+        )}
+
+        {requiereDatosLote && (
+          <div className="space-y-1">
+            <label className="text-sm font-semibold text-slate-700">Vencimiento de lote</label>
+            <Input
+              value={fechaVencimientoLote}
+              onChange={(event) => setFechaVencimientoLote(event.target.value)}
+              type="date"
+            />
+          </div>
+        )}
 
         {requiresOrigen(tipo) && (
           <FormSelect

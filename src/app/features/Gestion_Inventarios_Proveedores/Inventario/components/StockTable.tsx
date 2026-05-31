@@ -15,6 +15,17 @@ function stockBadgeClass(estado: EstadoStock) {
   return 'bg-green-100 text-green-700';
 }
 
+function toSafeText(value: unknown, fallback = '-'): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (value && typeof value === 'object') {
+    const maybe = value as { nombre?: unknown; producto_nombre?: unknown };
+    if (typeof maybe.producto_nombre === 'string') return maybe.producto_nombre;
+    if (typeof maybe.nombre === 'string') return maybe.nombre;
+  }
+  return fallback;
+}
+
 export function StockTable({
   items,
   isLoading,
@@ -51,6 +62,8 @@ export function StockTable({
             <TableHead className="text-slate-700">Cantidad</TableHead>
             <TableHead className="text-slate-700">Minimo</TableHead>
             <TableHead className="text-slate-700">Estado</TableHead>
+            <TableHead className="text-slate-700">Lote</TableHead>
+            <TableHead className="text-slate-700">Vencimiento</TableHead>
             <TableHead className="text-slate-700">Actualizacion</TableHead>
           </TableRow>
         </TableHeader>
@@ -61,21 +74,25 @@ export function StockTable({
               className="bg-white text-slate-800 hover:bg-orange-50"
             >
               <TableCell className="font-semibold text-slate-900">
-                {item.producto_nombre}
+                {toSafeText(item.producto_nombre, 'Producto')}
               </TableCell>
-              <TableCell className="text-slate-700">{item.categoria_producto}</TableCell>
+              <TableCell className="text-slate-700">{toSafeText(item.categoria_producto)}</TableCell>
               <TableCell className="text-slate-700">
                 <div className="flex flex-col">
-                  <span>{item.punto_nombre}</span>
-                  <span className="text-xs text-slate-500">{item.punto_tipo}</span>
+                  <span>{toSafeText(item.punto_nombre)}</span>
+                  <span className="text-xs text-slate-500">{toSafeText(item.punto_tipo)}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-slate-700">{item.cantidad}</TableCell>
-              <TableCell className="text-slate-700">{item.cantidad_minima}</TableCell>
+              <TableCell className="text-slate-700">{toSafeText(item.cantidad, '0')}</TableCell>
+              <TableCell className="text-slate-700">{toSafeText(item.cantidad_minima, '0')}</TableCell>
               <TableCell>
                 <Badge className={stockBadgeClass(item.estado_stock)}>
                   {item.estado_stock}
                 </Badge>
+              </TableCell>
+              <TableCell className="text-slate-700">{toSafeText(item.numero_lote)}</TableCell>
+              <TableCell className="text-slate-700">
+                {toSafeText(item.fecha_vencimiento_lote)}
               </TableCell>
               <TableCell className="text-slate-700">
                 {new Date(item.fecha_actualizacion).toLocaleString()}

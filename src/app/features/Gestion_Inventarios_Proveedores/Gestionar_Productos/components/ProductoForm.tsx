@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, type ChangeEvent, type ElementType, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
+import type { ChangeEvent, ElementType, FormEvent } from 'react'
 import type {
   Categoria,
   Producto,
@@ -58,34 +59,38 @@ const emptyProductoForm = (
   idVeterinaria: number,
   categorias: Categoria[],
   proveedores: Proveedor[],
-): ProductoFormData => ({
-  nombre: '',
-  descripcion: '',
-  precio_compra: 0,
-  precio_venta: 0,
-  unidad_medida: 'Unidad',
-  estado: 'Activo',
-  visible_catalogo: true,
-  imagen: null,
-  tipo_mascota: null,
-  destacado: false,
-  novedad_desde: null,
-  novedad_hasta: null,
-  tiene_promocion: false,
-  tipo_descuento: null,
-  porcentaje_descuento: null,
-  monto_descuento: null,
-  precio_promocional: null,
-  promocion_fecha_inicio: null,
-  promocion_fecha_fin: null,
-  id_categoria_producto:
-    categorias.find((categoria) => categoria.estado === 'Activo')
-      ?.id_categoria_producto ?? categorias[0]?.id_categoria_producto ?? 0,
-  id_proveedor:
-    proveedores.find((proveedor) => proveedor.estado === 'Activo')
-      ?.id_proveedor ?? proveedores[0]?.id_proveedor ?? null,
-  id_veterinaria: idVeterinaria,
-})
+): ProductoFormData => {
+  const categoriaActiva = categorias.find((categoria) => categoria.estado === 'Activo')
+  const proveedorActivo = proveedores.find((proveedor) => proveedor.estado === 'Activo')
+  return {
+    nombre: '',
+    descripcion: '',
+    precio_compra: 0,
+    precio_venta: 0,
+    unidad_medida: 'Unidad',
+    estado: 'Activo',
+    visible_catalogo: true,
+    imagen: null,
+    tipo_mascota: null,
+    destacado: false,
+    novedad_desde: null,
+    novedad_hasta: null,
+    tiene_promocion: false,
+    tipo_descuento: null,
+    porcentaje_descuento: null,
+    monto_descuento: null,
+    precio_promocional: null,
+    promocion_fecha_inicio: null,
+    promocion_fecha_fin: null,
+    id_categoria_producto:
+      categoriaActiva?.id_categoria_producto || categorias[0]?.id_categoria_producto || 0,
+    id_proveedor:
+      proveedorActivo?.id_proveedor || proveedores[0]?.id_proveedor || null,
+    id_veterinaria: idVeterinaria,
+    requiere_control_vencimiento: false,
+    dias_alerta_vencimiento: 30,
+  }
+}
 
 interface ProductoFormProps {
   producto?: Producto
@@ -116,6 +121,13 @@ export function ProductoForm({
     Partial<Record<keyof ProductoFormData, string>>
   >({})
 
+  const categoriaActivaPorDefecto = categorias.find(
+    (categoria) => categoria.estado === 'Activo',
+  )
+  const proveedorActivoPorDefecto = proveedores.find(
+    (proveedor) => proveedor.estado === 'Activo',
+  )
+
   useEffect(() => {
     if (producto) {
       setFormData({
@@ -124,8 +136,8 @@ export function ProductoForm({
         precio_compra: Number(producto.precio_compra || 0),
         precio_venta: Number(producto.precio_venta || 0),
         unidad_medida: producto.unidad_medida || 'Unidad',
-        estado: producto.estado || 'Activo',
-        visible_catalogo: producto.visible_catalogo ?? true,
+        estado: producto.estado,
+        visible_catalogo: producto.visible_catalogo,
         imagen: producto.imagen || null,
         tipo_mascota: producto.tipo_mascota ?? null,
         destacado: Boolean(producto.destacado),
@@ -151,8 +163,14 @@ export function ProductoForm({
         promocion_fecha_inicio: producto.promocion_fecha_inicio ?? null,
         promocion_fecha_fin: producto.promocion_fecha_fin ?? null,
         id_categoria_producto: producto.id_categoria_producto,
-        id_proveedor: producto.id_proveedor ?? null,
+        id_proveedor: producto.id_proveedor,
         id_veterinaria: producto.id_veterinaria || idVeterinaria,
+        requiere_control_vencimiento: Boolean(producto.requiere_control_vencimiento),
+        dias_alerta_vencimiento:
+          producto.dias_alerta_vencimiento === null ||
+          producto.dias_alerta_vencimiento === undefined
+            ? 30
+            : Number(producto.dias_alerta_vencimiento),
       })
 
       setImagePreview(
@@ -167,19 +185,17 @@ export function ProductoForm({
       ...current,
       id_categoria_producto:
         current.id_categoria_producto ||
-        categorias.find((categoria) => categoria.estado === 'Activo')
-          ?.id_categoria_producto ||
+        categoriaActivaPorDefecto?.id_categoria_producto ||
         categorias[0]?.id_categoria_producto ||
         0,
       id_proveedor:
         current.id_proveedor ||
-        proveedores.find((proveedor) => proveedor.estado === 'Activo')
-          ?.id_proveedor ||
+        proveedorActivoPorDefecto?.id_proveedor ||
         proveedores[0]?.id_proveedor ||
         null,
       id_veterinaria: idVeterinaria,
     }))
-  }, [producto, idVeterinaria, categorias, proveedores])
+  }, [producto, idVeterinaria, categorias, proveedores, categoriaActivaPorDefecto, proveedorActivoPorDefecto])
 
   const validate = (): boolean => {
     const newErrors: Partial<Record<keyof ProductoFormData, string>> = {}
@@ -253,6 +269,13 @@ export function ProductoForm({
       }
     }
 
+    if (
+      formData.requiere_control_vencimiento &&
+      Number(formData.dias_alerta_vencimiento ?? 0) < 1
+    ) {
+      newErrors.dias_alerta_vencimiento = 'Debe ser mayor o igual a 1'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -286,12 +309,15 @@ export function ProductoForm({
       promocion_fecha_fin: formData.tiene_promocion
         ? formData.promocion_fecha_fin
         : null,
+      dias_alerta_vencimiento: formData.requiere_control_vencimiento
+        ? formData.dias_alerta_vencimiento
+        : null,
     })
   }
 
-  const handleChange = <K extends keyof ProductoFormData>(
-    field: K,
-    value: ProductoFormData[K],
+  const handleChange = <TKey extends keyof ProductoFormData>(
+    field: TKey,
+    value: ProductoFormData[TKey],
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
 
@@ -707,6 +733,51 @@ export function ProductoForm({
               {margen}%
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-orange-100 bg-[#F8FAFC] p-4 sm:p-5">
+        <SectionHeader
+          icon={CalendarDays}
+          iconVariant="orange"
+          title="Control de vencimiento"
+          description="Configura si el producto requiere alerta por fecha de vencimiento."
+        />
+
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <ToggleCard
+            title="Controlar vencimiento"
+            description={
+              formData.requiere_control_vencimiento
+                ? 'Se habilitan alertas por vencimiento'
+                : 'Sin seguimiento de vencimiento'
+            }
+            active={formData.requiere_control_vencimiento}
+            icon={CalendarDays}
+            onClick={() =>
+              handleChange(
+                'requiere_control_vencimiento',
+                !formData.requiere_control_vencimiento,
+              )
+            }
+            disabled={isLoading}
+          />
+
+          {formData.requiere_control_vencimiento ? (
+            <div className="grid grid-cols-1 gap-4">
+              <NumberInput
+                id="dias_alerta_vencimiento"
+                label="Dias de alerta previa"
+                value={formData.dias_alerta_vencimiento}
+                error={errors.dias_alerta_vencimiento}
+                inputBaseClass={inputBaseClass}
+                disabled={isLoading}
+                onChange={(value) =>
+                  handleChange('dias_alerta_vencimiento', value ?? 30)
+                }
+              />
+            </div>
+          ) : null}
         </div>
       </section>
 

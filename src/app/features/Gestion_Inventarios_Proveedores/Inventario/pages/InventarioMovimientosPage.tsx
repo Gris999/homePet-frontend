@@ -34,7 +34,7 @@ const MOVIMIENTO_OPTIONS: Array<TipoMovimientoInventario | 'all'> = [
 ];
 
 function extractApiMessages(error: unknown) {
-  const response = (error as { data?: ApiErrorResponse })?.data;
+  const response = (error as { data?: ApiErrorResponse }).data;
   const messages: string[] = [];
 
   if (!response || typeof response !== 'object') return messages;
@@ -110,7 +110,12 @@ export function InventarioMovimientosPage() {
         </section>
 
         <MovimientoForm
-          productos={productos.map((p) => ({ id: p.id_producto, nombre: p.nombre }))}
+          productos={productos.map((p) => ({
+            id: p.id_producto,
+            nombre: p.nombre,
+            requiere_control_vencimiento: p.requiere_control_vencimiento,
+            dias_alerta_vencimiento: p.dias_alerta_vencimiento,
+          }))}
           puntos={puntos}
           onSubmit={handleCreate}
           isLoading={createState.isLoading}

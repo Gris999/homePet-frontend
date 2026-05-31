@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { Component, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Input } from '#/components/ui/input';
 import {
   Select,
@@ -10,27 +11,59 @@ import {
 import { PackageSearch } from 'lucide-react';
 import { useGetCategoriasQuery } from '#/store/inventario/categoriasApi';
 import { useGetProductosQuery } from '#/store/inventario/productosApi';
+import { useAppSelector } from '#/store/hooks';
 import {
   useGetDisponibilidadProductoQuery,
   useGetPuntosInventarioQuery,
-  useGetStockAlertasQuery,
   useGetStockGeneralQuery,
   useGetStockUnidadesMovilesQuery,
 } from '../services/inventarioApi';
 import { AlertasStockTable } from '../components/AlertasStockTable';
 import { DisponibilidadProductoCard } from '../components/DisponibilidadProductoCard';
 import { StockTable } from '../components/StockTable';
+import { useInventarioAlertas } from '../hooks/useInventarioAlertas';
 
 type TabType = 'GENERAL' | 'MOVIL' | 'ALERTAS';
 
+class AlertasSectionBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    if (import.meta.env.DEV) {
+      console.error('Error renderizando Alertas:', error);
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800">
+          <p className="text-sm font-semibold">No se pudieron renderizar las alertas.</p>
+          <p className="mt-1 text-sm">Recarga la pagina e intenta nuevamente.</p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function InventarioControlPage() {
+  const userRole = useAppSelector((state) => state.auth.user?.role);
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
   const [search, setSearch] = useState('');
   const [idCategoria, setIdCategoria] = useState<string>('all');
   const [idPunto, setIdPunto] = useState<string>('all');
-  const [estadoAlerta, setEstadoAlerta] = useState<'all' | 'AGOTADO' | 'STOCK_BAJO'>(
-    'all',
-  );
+  const [estadoAlerta, setEstadoAlerta] = useState<
+    'all' | 'STOCK_BAJO' | 'AGOTADO' | 'VENCIDO' | 'PROXIMO_VENCER'
+  >('all');
+  const [diasProximoVencer, setDiasProximoVencer] = useState<string>('30');
   const [productoSeleccionado, setProductoSeleccionado] = useState<string>('all');
 
   const { data: categorias = [] } = useGetCategoriasQuery();
@@ -47,17 +80,103 @@ export function InventarioControlPage() {
   );
 
   const stockGeneralQuery = useGetStockGeneralQuery(stockParams, {
-    skip: activeTab !== 'GENERAL',
+    skip: activeTab !== 'GENERAL' && activeTab !== 'ALERTAS',
   });
   const stockMovilQuery = useGetStockUnidadesMovilesQuery(stockParams, {
     skip: activeTab !== 'MOVIL',
   });
-  const stockAlertasQuery = useGetStockAlertasQuery(
-    {
-      estado: estadoAlerta === 'all' ? undefined : estadoAlerta,
-    },
-    { skip: activeTab !== 'ALERTAS' },
-  );
+  const categoriaSeleccionadaNombre =
+    idCategoria === 'all'
+      ? undefined
+      : categorias.find((cat) => cat.id_categoria_producto === Number(idCategoria))?.nombre;
+
+  const alertas = useInventarioAlertas({
+    enabled: activeTab === 'ALERTAS',
+    estado: estadoAlerta,
+    dias: Number(diasProximoVencer) || 30,
+    idPunto: idPunto === 'all' ? undefined : Number(idPunto),
+    categoriaNombre: categoriaSeleccionadaNombre,
+    search: search.trim() || undefined,
+  });
+  const isAdmin = userRole === 'ADMIN';
+
+  const isForbiddenAlertas = alertas.errorMessage
+    ?.toLowerCase()
+    .includes('solo los veterinarios');
+
+  const fallbackAlertas = useMemo(() => {
+    const today = new Date();
+    const dias = Number(diasProximoVencer) || 30;
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + dias);
+
+    const base = (stockGeneralQuery.data ?? []).filter((item) => {
+      const byPunto = idPunto === 'all' || item.id_punto === Number(idPunto);
+      const byCategoria =
+        idCategoria === 'all' ||
+        item.categoria_producto === categoriaSeleccionadaNombre;
+      const bySearch =
+        !search.trim() ||
+        item.producto_nombre.toLowerCase().includes(search.trim().toLowerCase());
+      return byPunto && byCategoria && bySearch;
+    });
+
+    const withType = base.flatMap((item) => {
+      const results: Array<typeof item & { tipo_alerta: 'STOCK_BAJO' | 'AGOTADO' | 'VENCIDO' | 'PROXIMO_VENCER' }> = [];
+      if (item.estado_stock === 'AGOTADO') {
+        results.push({ ...item, tipo_alerta: 'AGOTADO' });
+      }
+      if (item.estado_stock === 'STOCK_BAJO') {
+        results.push({ ...item, tipo_alerta: 'STOCK_BAJO' });
+      }
+
+      const venc = item.fecha_vencimiento_lote;
+      if (venc) {
+        const vDate = new Date(venc);
+        if (!Number.isNaN(vDate.getTime())) {
+          if (vDate < today) {
+            results.push({ ...item, tipo_alerta: 'VENCIDO' });
+          } else if (vDate <= endDate) {
+            results.push({ ...item, tipo_alerta: 'PROXIMO_VENCER' });
+          }
+        }
+      }
+
+      return results;
+    });
+
+    const filteredByEstado =
+      estadoAlerta === 'all'
+        ? withType
+        : withType.filter((item) => item.tipo_alerta === estadoAlerta);
+
+    const resumen = {
+      stocks_bajos: withType.filter((x) => x.tipo_alerta === 'STOCK_BAJO').length,
+      stocks_agotados: withType.filter((x) => x.tipo_alerta === 'AGOTADO').length,
+      lotes_vencidos: withType.filter((x) => x.tipo_alerta === 'VENCIDO').length,
+      lotes_proximo_vencer: withType.filter((x) => x.tipo_alerta === 'PROXIMO_VENCER').length,
+      total_alertas: withType.length,
+    };
+
+    return { items: filteredByEstado, resumen };
+  }, [
+    stockGeneralQuery.data,
+    diasProximoVencer,
+    idPunto,
+    idCategoria,
+    categoriaSeleccionadaNombre,
+    search,
+    estadoAlerta,
+  ]);
+
+  const shouldUseFallback = isAdmin && Boolean(isForbiddenAlertas);
+  const alertItems = shouldUseFallback ? fallbackAlertas.items : alertas.items;
+  const alertResumen = shouldUseFallback ? fallbackAlertas.resumen : alertas.resumen;
+  const alertIsError = shouldUseFallback ? false : alertas.isError;
+  const alertErrorMessage = shouldUseFallback ? null : alertas.errorMessage;
+  const alertIsLoading = shouldUseFallback
+    ? stockGeneralQuery.isLoading || stockGeneralQuery.isFetching
+    : alertas.isLoading || alertas.isFetching;
   const disponibilidadQuery = useGetDisponibilidadProductoQuery(
     Number(productoSeleccionado),
     { skip: productoSeleccionado === 'all' },
@@ -150,17 +269,28 @@ export function InventarioControlPage() {
           </div>
 
           {activeTab === 'ALERTAS' && (
-            <div className="mt-4 max-w-xs">
-              <Select value={estadoAlerta} onValueChange={(v) => setEstadoAlerta(v as any)}>
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <Select value={estadoAlerta} onValueChange={(v) => setEstadoAlerta(v as typeof estadoAlerta)}>
                 <SelectTrigger className="h-11 w-full border-[#C4B5FD] bg-white text-slate-900 data-placeholder:text-slate-400">
                   <SelectValue placeholder="Estado alerta" />
                 </SelectTrigger>
                 <SelectContent className="border-[#E9D5FF] bg-white text-slate-900">
                   <SelectItem value="all" className="text-slate-900 focus:bg-[#F3E8FF] focus:text-[#6A24D4]">Todas</SelectItem>
-                  <SelectItem value="AGOTADO" className="text-slate-900 focus:bg-[#F3E8FF] focus:text-[#6A24D4]">AGOTADO</SelectItem>
-                  <SelectItem value="STOCK_BAJO" className="text-slate-900 focus:bg-[#F3E8FF] focus:text-[#6A24D4]">STOCK_BAJO</SelectItem>
+                  <SelectItem value="STOCK_BAJO" className="text-slate-900 focus:bg-[#F3E8FF] focus:text-[#6A24D4]">Stock bajo</SelectItem>
+                  <SelectItem value="AGOTADO" className="text-slate-900 focus:bg-[#F3E8FF] focus:text-[#6A24D4]">Agotado</SelectItem>
+                  <SelectItem value="VENCIDO" className="text-slate-900 focus:bg-[#F3E8FF] focus:text-[#6A24D4]">Vencido</SelectItem>
+                  <SelectItem value="PROXIMO_VENCER" className="text-slate-900 focus:bg-[#F3E8FF] focus:text-[#6A24D4]">Proximo a vencer</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Input
+                value={diasProximoVencer}
+                onChange={(e) => setDiasProximoVencer(e.target.value)}
+                placeholder="Dias para proximos (ej: 30)"
+                type="number"
+                min={1}
+                className="border-[#C4B5FD] bg-white text-slate-900 placeholder:text-slate-400"
+              />
             </div>
           )}
         </section>
@@ -180,10 +310,16 @@ export function InventarioControlPage() {
         )}
 
         {activeTab === 'ALERTAS' && (
-          <AlertasStockTable
-            items={stockAlertasQuery.data ?? []}
-            isLoading={stockAlertasQuery.isLoading}
-          />
+          <AlertasSectionBoundary>
+            <AlertasStockTable
+              items={alertItems}
+              resumen={alertResumen}
+              isLoading={alertIsLoading}
+              isError={alertIsError}
+              errorMessage={alertErrorMessage}
+              onRetry={alertas.refetch}
+            />
+          </AlertasSectionBoundary>
         )}
 
         <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-sm">

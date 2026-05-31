@@ -191,6 +191,11 @@ export function ProductosTable({
                         {isPromocionActiva(producto) && (
                           <PromocionBadge producto={producto} />
                         )}
+                        {producto.requiere_control_vencimiento && (
+                          <Badge className="rounded-full border border-blue-200 bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100">
+                            Alerta: {producto.dias_alerta_vencimiento ?? 30} dias
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -234,7 +239,7 @@ export function ProductosTable({
                 <TableCell className="px-5 py-5 align-top">
                   <div className="flex flex-col items-start gap-2">
                     <EstadoBadge estado={producto.estado} />
-                    <CatalogoBadge visible={producto.visible_catalogo ?? true} />
+                    <CatalogoBadge visible={producto.visible_catalogo} />
                     {producto.novedad_desde || producto.novedad_hasta ? (
                       <DateRangeBadge producto={producto} />
                     ) : null}
@@ -317,12 +322,17 @@ export function ProductosTable({
 
             <div className="mt-4 flex flex-wrap gap-2 border-t border-orange-100 pt-4">
               {getMargenBadge(producto.precio_compra, producto.precio_venta)}
-              <CatalogoBadge visible={producto.visible_catalogo ?? true} />
+              <CatalogoBadge visible={producto.visible_catalogo} />
               <EstadoBadge estado={producto.estado} />
               <TipoMascotaBadge tipo={producto.tipo_mascota} />
               {producto.destacado && <DestacadoBadge />}
               {isNovedadActiva(producto) && <NovedadBadge />}
               {isPromocionActiva(producto) && <PromocionBadge producto={producto} />}
+              {producto.requiere_control_vencimiento && (
+                <Badge className="rounded-full border border-blue-200 bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100">
+                  Alerta: {producto.dias_alerta_vencimiento ?? 30} dias
+                </Badge>
+              )}
             </div>
           </article>
         ))}

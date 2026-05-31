@@ -50,6 +50,8 @@ export function MovimientosTable({
             <TableHead className="text-slate-700">Producto</TableHead>
             <TableHead className="text-slate-700">Cantidad</TableHead>
             <TableHead className="text-slate-700">Usuario</TableHead>
+            <TableHead className="text-slate-700">Lote</TableHead>
+            <TableHead className="text-slate-700">Venc. lote</TableHead>
             <TableHead className="text-slate-700">Origen</TableHead>
             <TableHead className="text-slate-700">Destino</TableHead>
             <TableHead className="text-slate-700">Motivo</TableHead>
@@ -70,6 +72,8 @@ export function MovimientosTable({
               <TableCell className="font-semibold text-slate-900">{item.producto_nombre}</TableCell>
               <TableCell className="text-slate-700">{item.cantidad}</TableCell>
               <TableCell className="text-slate-700">{item.usuario_nombre}</TableCell>
+              <TableCell className="text-slate-700">{item.numero_lote ?? '-'}</TableCell>
+              <TableCell className="text-slate-700">{item.fecha_vencimiento_lote ?? '-'}</TableCell>
               <TableCell className="text-slate-700">{item.punto_origen_nombre ?? '-'}</TableCell>
               <TableCell className="text-slate-700">{item.punto_destino_nombre ?? '-'}</TableCell>
               <TableCell className="text-slate-700">{item.motivo ?? '-'}</TableCell>

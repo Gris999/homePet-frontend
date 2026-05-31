@@ -6,10 +6,14 @@ type ProductoPayload = Omit<ProductoFormData, 'imagen'> & {
   veterinaria?: number
 }
 
-function appendOptional(formData: FormData, key: string, value: string | number | boolean | null | undefined) {
-  if (value !== null && value !== undefined && value !== '') {
-    formData.append(key, String(value))
-  }
+function appendOptional(
+  formData: FormData,
+  key: string,
+  value: string | number | null | undefined,
+) {
+  if (value === null || value === undefined) return
+  if (typeof value === 'string' && value === '') return
+  formData.append(key, String(value))
 }
 
 function buildProductoPayload(data: ProductoPayload) {
@@ -17,13 +21,17 @@ function buildProductoPayload(data: ProductoPayload) {
 
   formData.append('nombre', data.nombre)
   formData.append('descripcion', data.descripcion ?? '')
-  formData.append('precio_compra', String(data.precio_compra ?? 0))
-  formData.append('precio_venta', String(data.precio_venta ?? 0))
-  formData.append('unidad_medida', data.unidad_medida ?? '')
-  formData.append('estado', String(data.estado ?? 'Activo'))
+  formData.append('precio_compra', String(data.precio_compra))
+  formData.append('precio_venta', String(data.precio_venta))
+  formData.append('unidad_medida', data.unidad_medida)
+  formData.append('estado', String(data.estado))
   formData.append('visible_catalogo', String(Boolean(data.visible_catalogo)))
   formData.append('destacado', String(Boolean(data.destacado)))
   formData.append('tiene_promocion', String(Boolean(data.tiene_promocion)))
+  formData.append(
+    'requiere_control_vencimiento',
+    String(Boolean(data.requiere_control_vencimiento)),
+  )
   formData.append('id_categoria_producto', String(data.id_categoria_producto))
 
   appendOptional(formData, 'tipo_mascota', data.tipo_mascota)
@@ -35,12 +43,13 @@ function buildProductoPayload(data: ProductoPayload) {
   appendOptional(formData, 'precio_promocional', data.precio_promocional)
   appendOptional(formData, 'promocion_fecha_inicio', data.promocion_fecha_inicio)
   appendOptional(formData, 'promocion_fecha_fin', data.promocion_fecha_fin)
+  appendOptional(formData, 'dias_alerta_vencimiento', data.dias_alerta_vencimiento)
 
-  if (data.id_proveedor !== null && data.id_proveedor !== undefined) {
+  if (data.id_proveedor !== null) {
     formData.append('id_proveedor', String(data.id_proveedor))
   }
 
-  if (data.veterinaria !== undefined && data.veterinaria !== null) {
+  if (data.veterinaria != null) {
     formData.append('id_veterinaria', String(data.veterinaria))
   }
 
@@ -56,7 +65,7 @@ export const productosApi = api.injectEndpoints({
     getProductos: builder.query<Producto[], { search?: string; estado?: string; visible_catalogo?: string; id_categoria_producto?: number; id_proveedor?: number; tipo_mascota?: string; destacado?: string; con_descuento?: string } | void>({
       query: (params) => ({
         url: '/gestion/inventario/productos/',
-        params: params ?? undefined,
+        ...(params ? { params } : {}),
       }),
       providesTags: (result) =>
         result
@@ -84,7 +93,10 @@ export const productosApi = api.injectEndpoints({
         method: 'PUT',
         body: buildProductoPayload(data),
       }),
-      invalidatesTags: (_result, _error, { id }) => [{ type: 'Productos', id }],
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Productos', id },
+        { type: 'Productos', id: 'LIST' },
+      ],
     }),
     deleteProducto: builder.mutation<void, number>({
       query: (id) => ({ url: `/gestion/inventario/productos/${id}/`, method: 'DELETE' }),

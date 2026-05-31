@@ -30,6 +30,8 @@ export interface Producto {
   id_categoria_producto: number
   id_proveedor: number | null
   id_veterinaria: number
+  requiere_control_vencimiento?: boolean
+  dias_alerta_vencimiento?: number | null
 
   fechaRegistro?: string
 }
@@ -61,6 +63,8 @@ export interface ProductoFormData {
   id_categoria_producto: number
   id_proveedor: number | null
   id_veterinaria: number
+  requiere_control_vencimiento: boolean
+  dias_alerta_vencimiento: number | null
 }
 
 export interface Categoria {
