@@ -43,7 +43,7 @@ function BillingSuccessPage() {
         </p>
         {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
         <Button asChild className="mt-6 w-full bg-[#F97316] hover:bg-[#EA580C]">
-          <Link to="/login">Ir a login</Link>
+          <Link to="/login" search={{ register: false }}>Ir a login</Link>
         </Button>
         {isLoading ? <p className="mt-3 text-xs text-slate-500">Procesando...</p> : null}
       </div>

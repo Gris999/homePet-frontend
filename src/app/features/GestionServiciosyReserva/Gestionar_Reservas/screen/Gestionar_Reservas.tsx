@@ -1,7 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { EditReservaModal } from '../components'
+import {
+  useIniciarPagoOnlineMutation,
+  useConfirmarPagoManualMutation,
+  useGetPagosQuery,
+} from '#/app/features/GestiondeVentasyPagos/services/pagosApi'
+import { ComprobantePagoModal } from '#/app/features/GestiondeVentasyPagos/components/ComprobantePagoModal'
 import { CreateConsultaModal } from '#/app/features/Gestionar_Clinica_Veterinaria/Gestionar_Historia_Clinica/components'
 import {
   useGetMascotasOptionsQuery,
@@ -42,6 +48,109 @@ export const Gestionar_Reservas = () => {
   const [cancelReason, setCancelReason] = useState('')
   const [createConsultaOpen, setCreateConsultaOpen] = useState(false)
   const [selectedReservaForConsulta, setSelectedReservaForConsulta] = useState<Reserva | null>(null)
+
+  // Payments integration states and hooks
+  const [iniciarPagoOnline, { isLoading: isStripeStarting }] = useIniciarPagoOnlineMutation()
+  const [confirmarPagoManual, { isLoading: isConfirmingManual }] = useConfirmarPagoManualMutation()
+  const { data: pagosList = [], refetch: refetchPagos } = useGetPagosQuery()
+
+  const [payingReserva, setPayingReserva] = useState<Reserva | null>(null)
+  const [showManualModal, setShowManualModal] = useState(false)
+  const [manualMethod, setManualMethod] = useState<'EFECTIVO' | 'TRANSFERENCIA' | 'QR' | 'ADMINISTRATIVO'>('EFECTIVO')
+  const [manualObs, setManualObs] = useState('')
+  const [manualError, setManualError] = useState<string | null>(null)
+
+  const [showStripeModal, setShowStripeModal] = useState(false)
+  const [stripePagoId, setStripePagoId] = useState<number | null>(null)
+  const [stripeUrl, setStripeUrl] = useState<string | null>(null)
+  const [stripeStatus, setStripeStatus] = useState<string>('PENDIENTE')
+  const [stripeError, setStripeError] = useState<string | null>(null)
+
+  const [showComprobanteId, setShowComprobanteId] = useState<number | null>(null)
+  const [copiedLink, setCopiedLink] = useState(false)
+
+  useEffect(() => {
+    let intervalId: any
+    let attempts = 0
+    if (showStripeModal && stripePagoId && stripeStatus === 'PENDIENTE') {
+      intervalId = setInterval(async () => {
+        attempts++
+        if (attempts > 30) {
+          setStripeError('Tu pago se está procesando. Puedes verificar el estado en tu historial en unos minutos.')
+          clearInterval(intervalId)
+          return
+        }
+        try {
+          const res = await refetchPagos().unwrap()
+          const matched = res.find((p) => p.id_pago === stripePagoId)
+          if (matched) {
+            setStripeStatus(matched.estado_pago)
+            if (matched.estado_pago === 'PAGADO') {
+              clearInterval(intervalId)
+              refetch()
+              if (matched.comprobante?.id_comprobante) {
+                setShowComprobanteId(matched.comprobante.id_comprobante)
+              }
+            } else if (matched.estado_pago === 'FALLIDO' || matched.estado_pago === 'RECHAZADO') {
+              clearInterval(intervalId)
+              setStripeError('El pago fue fallido o rechazado. Intenta de nuevo.')
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+      }, 2000)
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [showStripeModal, stripePagoId, stripeStatus, refetchPagos])
+
+  const handleStripePay = async (reserva: Reserva) => {
+    setStripeError(null)
+    setStripeStatus('PENDIENTE')
+    try {
+      const res = await iniciarPagoOnline({
+        tipo_referencia: 'CITA_SERVICIO',
+        referencia_id: reserva.id_cita,
+        metodo_pago: 'STRIPE',
+      }).unwrap()
+
+      if (res.checkout_url) {
+        setStripePagoId(res.id_pago)
+        setStripeUrl(res.checkout_url)
+        setShowStripeModal(true)
+      } else {
+        setStripeError('No se recibió la URL de checkout de Stripe.')
+      }
+    } catch (err: any) {
+      const msg = err.data?.detail || err.data?.message || 'Error al iniciar pago con Stripe.'
+      setStripeError(msg)
+    }
+  }
+
+  const handleManualPay = async (reserva: Reserva) => {
+    setManualError(null)
+    try {
+      const res = await confirmarPagoManual({
+        tipo_referencia: 'CITA_SERVICIO',
+        referencia_id: reserva.id_cita,
+        metodo_pago: manualMethod,
+        observacion: manualObs,
+      }).unwrap()
+
+      setShowManualModal(false)
+      setPayingReserva(null)
+      refetch()
+      refetchPagos()
+      if (res.comprobante?.id_comprobante) {
+        setShowComprobanteId(res.comprobante.id_comprobante)
+      }
+    } catch (err: any) {
+      const msg = err.data?.detail || err.data?.message || 'Error al registrar pago manual.'
+      setManualError(msg)
+    }
+  }
 
   const canEdit = useCanEdit('SERV_CITAS')
   const canDelete = useCanDelete('SERV_CITAS')
@@ -257,6 +366,42 @@ export const Gestionar_Reservas = () => {
                               + Consulta
                             </Button>
                           )}
+                          {(() => {
+                            const matchPago = pagosList.find(
+                              (p) => p.tipo_referencia === 'CITA_SERVICIO' && p.referencia_id === reserva.id_cita && p.estado_pago === 'PAGADO'
+                            )
+                            if (matchPago) {
+                              return (
+                                <Button
+                                  type="button"
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs px-3"
+                                  onClick={() => {
+                                    if (matchPago.comprobante?.id_comprobante) {
+                                      setShowComprobanteId(matchPago.comprobante.id_comprobante)
+                                    }
+                                  }}
+                                >
+                                  Recibo
+                                </Button>
+                              )
+                            } else if (reserva.estado === 'PENDIENTE' || reserva.estado === 'CONFIRMADA') {
+                              return (
+                                <Button
+                                  type="button"
+                                  className="bg-purple-700 hover:bg-purple-800 text-white h-8 text-xs px-3"
+                                  onClick={() => {
+                                    setPayingReserva(reserva)
+                                    setManualObs('')
+                                    setManualError(null)
+                                    setStripeError(null)
+                                  }}
+                                >
+                                  Cobrar
+                                </Button>
+                              )
+                            }
+                            return null
+                          })()}
                         </>
                       )}
                       
@@ -303,9 +448,221 @@ export const Gestionar_Reservas = () => {
             onConsultaCreada={() => handleConsultaCreada(selectedReservaForConsulta.id_cita)}
             citaId={selectedReservaForConsulta.id_cita}
             mascotaId={selectedReservaForConsulta.mascota}
-            petName={selectedReservaForConsulta.mascota_nombre}
+            petName={selectedReservaForConsulta.mascota_nombre ?? ''}
           />
         )}
+
+      {/* Resumen de Cobro y Métodos */}
+      {payingReserva && !showManualModal && !showStripeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl text-slate-900 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-lg font-black text-slate-900 border-b pb-3 mb-4">Resumen de Cobro de Cita</h3>
+            <div className="space-y-3 text-sm mb-6">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Servicio:</span>
+                <span className="font-semibold text-slate-800 text-right">{payingReserva.servicio_nombre}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Mascota:</span>
+                <span className="font-semibold text-slate-800 text-right">{payingReserva.mascota_nombre}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Fecha y Hora:</span>
+                <span className="font-semibold text-slate-800 text-right">{payingReserva.fecha_programada} a las {payingReserva.hora_inicio.slice(0, 5)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Modalidad:</span>
+                <span className="font-semibold text-slate-800 text-right">{payingReserva.modalidad}</span>
+              </div>
+              {payingReserva.direccion_cita && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500 font-medium">Dirección:</span>
+                  <span className="font-semibold text-slate-800 text-right max-w-[200px] truncate" title={payingReserva.direccion_cita}>{payingReserva.direccion_cita}</span>
+                </div>
+              )}
+              <div className="border-t border-dashed pt-3 space-y-1.5">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Subtotal Servicio:</span>
+                  <span>Bs. {Number(payingReserva.precio_servicio).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Insumos / Productos:</span>
+                  <span>Bs. 0.00</span>
+                </div>
+                <div className="flex justify-between text-base font-bold text-slate-900 border-t pt-1.5">
+                  <span>Total Final:</span>
+                  <span className="text-[#6A24D4]">Bs. {Number(payingReserva.precio_servicio).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+            {stripeError && <p className="text-xs text-red-600 mb-3 font-semibold">{stripeError}</p>}
+            <div className="flex flex-col gap-2">
+              <Button
+                type="button"
+                onClick={() => {
+                  setManualError(null)
+                  setManualObs('')
+                  setShowManualModal(true)
+                }}
+                className="w-full bg-[#F97316] hover:bg-[#EA580C] text-white rounded-xl font-semibold text-xs h-10"
+              >
+                Registrar Pago Manual
+              </Button>
+              <Button
+                type="button"
+                disabled={isStripeStarting}
+                onClick={() => handleStripePay(payingReserva)}
+                className="w-full bg-[#635BFF] hover:bg-[#564FE0] text-white rounded-xl font-semibold text-xs h-10"
+              >
+                {isStripeStarting ? 'Iniciando Stripe...' : 'Pagar con Stripe'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPayingReserva(null)}
+                className="w-full rounded-xl font-semibold text-xs h-10 mt-1"
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Pago Manual */}
+      {payingReserva && showManualModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-900">
+            <h3 className="text-lg font-black text-slate-900 border-b pb-3 mb-4">Registrar Pago Manual</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              ¿Confirmar recepción de <strong>Bs. {Number(payingReserva.precio_servicio).toFixed(2)}</strong>? Esta acción registrará el pago y emitirá el comprobante inmediatamente.
+            </p>
+            <div className="space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Método de Pago</label>
+                <select
+                  value={manualMethod}
+                  onChange={(e: any) => setManualMethod(e.target.value)}
+                  className="w-full h-10 border rounded-xl px-3 text-sm text-slate-900 bg-white"
+                >
+                  <option value="EFECTIVO">EFECTIVO</option>
+                  <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                  <option value="QR">QR</option>
+                  <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Observación / Nota</label>
+                <textarea
+                  value={manualObs}
+                  onChange={(e) => setManualObs(e.target.value)}
+                  placeholder="Ej: Pago de consulta en efectivo."
+                  className="w-full p-3 border rounded-xl text-sm text-slate-900 h-20 bg-white resize-none"
+                />
+              </div>
+            </div>
+            {manualError && <p className="text-xs text-red-600 mt-3 font-semibold">{manualError}</p>}
+            <div className="flex justify-end gap-3 mt-6 border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowManualModal(false)}
+                className="rounded-xl font-semibold text-xs h-9 px-4"
+              >
+                Atrás
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleManualPay(payingReserva)}
+                disabled={isConfirmingManual}
+                className="bg-[#6A24D4] hover:bg-[#5b1fbc] text-white rounded-xl font-semibold text-xs h-9 px-4"
+              >
+                {isConfirmingManual ? 'Registrando...' : 'Confirmar Recepción'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Stripe Link/QR & Polling */}
+      {payingReserva && showStripeModal && stripeUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl text-center animate-in fade-in zoom-in duration-200 text-slate-900">
+            <h3 className="text-lg font-black text-slate-900 border-b pb-3 mb-4">Pagar con Stripe</h3>
+            <p className="text-sm text-slate-600 mb-5">
+              Escanea el código QR o haz clic en el enlace para pagar de forma segura con tarjeta.
+            </p>
+            
+            <div className="flex justify-center mb-6">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(stripeUrl)}`}
+                alt="Stripe QR Code"
+                className="border p-2 rounded-xl bg-white shadow-sm"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={stripeUrl}
+                  className="flex-1 h-9 bg-slate-50 border rounded-xl px-3 text-xs text-slate-600"
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(stripeUrl)
+                    setCopiedLink(true)
+                    setTimeout(() => setCopiedLink(false), 2000)
+                  }}
+                  className="bg-slate-200 text-slate-700 hover:bg-slate-300 font-semibold text-xs h-9 px-3 rounded-xl"
+                >
+                  {copiedLink ? 'Copiado!' : 'Copiar'}
+                </Button>
+              </div>
+
+              <div className="bg-violet-50 rounded-xl p-4 flex flex-col items-center justify-center gap-2">
+                {stripeStatus === 'PENDIENTE' && (
+                  <>
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#6A24D4] border-t-transparent"></div>
+                    <p className="text-xs text-slate-600 font-medium">Esperando confirmación del pago de Stripe...</p>
+                  </>
+                )}
+                {stripeStatus === 'PAGADO' && (
+                  <p className="text-xs text-emerald-600 font-bold uppercase">¡Pago aprobado correctamente!</p>
+                )}
+              </div>
+            </div>
+
+            {stripeError && <p className="text-xs text-red-600 mt-4 font-semibold">{stripeError}</p>}
+
+            <div className="flex justify-end gap-3 mt-6 border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowStripeModal(false)
+                  setPayingReserva(null)
+                  setStripePagoId(null)
+                  setStripeUrl(null)
+                }}
+                className="rounded-xl font-semibold text-xs h-9 px-4"
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Comprobante de Pago */}
+      {showComprobanteId && (
+        <ComprobantePagoModal
+          idComprobante={showComprobanteId}
+          onClose={() => setShowComprobanteId(null)}
+        />
+      )}
     </section>
   )
 }

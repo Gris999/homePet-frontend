@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent } from '#/components/ui/card'
@@ -10,6 +10,12 @@ import { DetallesVentaTable } from '../components/DetallesVentaTable'
 import { VentaEstadoBadge } from '../components/VentaEstadoBadge'
 import { VentaResumenCard } from '../components/VentaResumenCard'
 import { useGetVentaByIdQuery } from '../services/ventasService'
+import {
+  useIniciarPagoOnlineMutation,
+  useConfirmarPagoManualMutation,
+  useGetPagosQuery,
+} from '../services/pagosApi'
+import { ComprobantePagoModal } from '../components/ComprobantePagoModal'
 import {
   formatDateTime,
   getVentaClienteRefId,
@@ -40,12 +46,30 @@ export function DetalleVentaPage({ ventaId }: DetalleVentaPageProps) {
   const user = useAppSelector((state) => state.auth.user)
   const canAccess = canAccessVentasModule(user)
 
+  const [iniciarPagoOnline, { isLoading: isStripeStarting }] = useIniciarPagoOnlineMutation()
+  const [confirmarPagoManual, { isLoading: isConfirmingManual }] = useConfirmarPagoManualMutation()
+  const { data: pagosList = [], refetch: refetchPagos } = useGetPagosQuery(undefined, { skip: !canAccess })
+
+  const [showManualModal, setShowManualModal] = useState(false)
+  const [manualMethod, setManualMethod] = useState<'EFECTIVO' | 'TRANSFERENCIA' | 'QR' | 'ADMINISTRATIVO'>('EFECTIVO')
+  const [manualObs, setManualObs] = useState('')
+  const [manualError, setManualError] = useState<string | null>(null)
+
+  const [showStripeModal, setShowStripeModal] = useState(false)
+  const [stripePagoId, setStripePagoId] = useState<number | null>(null)
+  const [stripeUrl, setStripeUrl] = useState<string | null>(null)
+  const [stripeStatus, setStripeStatus] = useState<string>('PENDIENTE')
+  const [stripeError, setStripeError] = useState<string | null>(null)
+
+  const [showComprobanteId, setShowComprobanteId] = useState<number | null>(null)
+  const [copiedLink, setCopiedLink] = useState(false)
+
   const clientesQuery = useGetClientesQuery({ page: 1, page_size: 200 }, { skip: !canAccess })
   const clientesUsuariosQuery = useGetClientesMascotaQuery(undefined, { skip: !canAccess })
   const usuariosQuery = useGetUsuariosQuery(undefined, { skip: !canAccess })
   const ventaQuery = useGetVentaByIdQuery(ventaId, { skip: !canAccess || ventaId <= 0 })
   const detalles = useMemo(() => getVentaDetalles(ventaQuery.data), [ventaQuery.data])
-  const venta = ventaQuery.data ?? null
+  const venta = ventaQuery.data
   const clientes = clientesQuery.data?.results ?? []
   const clientesUsuarios = clientesUsuariosQuery.data ?? []
   const usuariosSistema = usuariosQuery.data ?? []
@@ -101,6 +125,94 @@ export function DetalleVentaPage({ ventaId }: DetalleVentaPageProps) {
     return fallbackName ?? '-'
   }, [user?.correo, user?.id_usuario, user?.nombre, usuarioSistemaById, venta])
 
+  const existingPago = useMemo(() => {
+    return pagosList.find(
+      (p) => p.tipo_referencia === 'VENTA_WEB' && p.referencia_id === ventaId && p.estado_pago === 'PAGADO'
+    )
+  }, [pagosList, ventaId])
+
+  useEffect(() => {
+    let intervalId: any
+    let attempts = 0
+    if (showStripeModal && stripePagoId && stripeStatus === 'PENDIENTE') {
+      intervalId = setInterval(async () => {
+        attempts++
+        if (attempts > 30) {
+          setStripeError('Tu pago se está procesando. Puedes verificar el estado en tu historial en unos minutos.')
+          clearInterval(intervalId)
+          return
+        }
+        try {
+          const res = await refetchPagos().unwrap()
+          const matched = res.find((p) => p.id_pago === stripePagoId)
+          if (matched) {
+            setStripeStatus(matched.estado_pago)
+            if (matched.estado_pago === 'PAGADO') {
+              clearInterval(intervalId)
+              ventaQuery.refetch()
+              if (matched.comprobante?.id_comprobante) {
+                setShowComprobanteId(matched.comprobante.id_comprobante)
+              }
+            } else if (matched.estado_pago === 'FALLIDO' || matched.estado_pago === 'RECHAZADO') {
+              clearInterval(intervalId)
+              setStripeError('El pago fue fallido o rechazado. Intenta de nuevo.')
+            }
+          }
+        } catch (err) {
+          // Ignore temp errors
+        }
+      }, 2000)
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [showStripeModal, stripePagoId, stripeStatus, refetchPagos, ventaQuery])
+
+  const handleStripePay = async () => {
+    setStripeError(null)
+    setStripeStatus('PENDIENTE')
+    try {
+      const res = await iniciarPagoOnline({
+        tipo_referencia: 'VENTA_WEB',
+        referencia_id: ventaId,
+        metodo_pago: 'STRIPE',
+      }).unwrap()
+
+      if (res.checkout_url) {
+        setStripePagoId(res.id_pago)
+        setStripeUrl(res.checkout_url)
+        setShowStripeModal(true)
+      } else {
+        setStripeError('No se recibió la URL de checkout de Stripe.')
+      }
+    } catch (err: any) {
+      const msg = err.data?.detail || err.data?.message || 'Error al iniciar pago con Stripe.'
+      setStripeError(msg)
+    }
+  }
+
+  const handleManualPay = async () => {
+    setManualError(null)
+    try {
+      const res = await confirmarPagoManual({
+        tipo_referencia: 'VENTA_WEB',
+        referencia_id: ventaId,
+        metodo_pago: manualMethod,
+        observacion: manualObs,
+      }).unwrap()
+
+      setShowManualModal(false)
+      ventaQuery.refetch()
+      refetchPagos()
+      if (res.comprobante?.id_comprobante) {
+        setShowComprobanteId(res.comprobante.id_comprobante)
+      }
+    } catch (err: any) {
+      const msg = err.data?.detail || err.data?.message || 'Error al registrar pago manual.'
+      setManualError(msg)
+    }
+  }
+
   if (!canAccess) {
     return (
       <Card className="border-red-200 bg-red-50">
@@ -129,7 +241,7 @@ export function DetalleVentaPage({ ventaId }: DetalleVentaPageProps) {
     )
   }
 
-  if (!ventaQuery.data) {
+  if (!venta) {
     return (
       <Card className="border-violet-100">
         <CardContent className="p-5 text-sm text-slate-600">La venta no existe.</CardContent>
@@ -179,6 +291,70 @@ export function DetalleVentaPage({ ventaId }: DetalleVentaPageProps) {
         </CardContent>
       </Card>
 
+      {venta.estado_venta === 'PENDIENTE_COBRO' && (
+        <Card className="border-amber-200 bg-amber-50/50 p-5">
+          <CardContent className="p-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-amber-800 text-lg">Venta pendiente de cobro</h3>
+              <p className="text-sm text-slate-600">Registra el pago manual en caja o genera el enlace para pagar con Stripe.</p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                onClick={() => {
+                  setManualError(null)
+                  setManualObs('')
+                  setShowManualModal(true)
+                }}
+                className="bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs h-10 px-4 rounded-xl"
+              >
+                Registrar Pago Manual
+              </Button>
+              <Button
+                type="button"
+                onClick={handleStripePay}
+                disabled={isStripeStarting}
+                className="bg-[#635BFF] hover:bg-[#564FE0] text-white font-semibold text-xs h-10 px-4 rounded-xl"
+              >
+                {isStripeStarting ? 'Iniciando Stripe...' : 'Pagar con Stripe'}
+              </Button>
+            </div>
+          </CardContent>
+          {stripeError && <p className="text-xs text-red-600 mt-2 font-medium">{stripeError}</p>}
+        </Card>
+      )}
+
+      {venta.estado_venta === 'PAGADA' && (
+        <Card className="border-emerald-200 bg-emerald-50/50 p-5">
+          <CardContent className="p-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-emerald-800 text-lg">Venta Pagada</h3>
+              <p className="text-sm text-slate-600">Esta venta ya cuenta con un pago aprobado y el comprobante está disponible.</p>
+            </div>
+            <div>
+              <Button
+                type="button"
+                onClick={() => {
+                  if (existingPago?.comprobante?.id_comprobante) {
+                    setShowComprobanteId(existingPago.comprobante.id_comprobante)
+                  } else {
+                    const alt = pagosList.find(p => p.tipo_referencia === 'VENTA_WEB' && p.referencia_id === ventaId)
+                    if (alt?.comprobante?.id_comprobante) {
+                      setShowComprobanteId(alt.comprobante.id_comprobante)
+                    } else {
+                      alert('El comprobante aún no se ha cargado. Por favor, actualiza la página.')
+                    }
+                  }
+                }}
+                className="bg-[#6A24D4] hover:bg-[#5b1fbc] text-white font-semibold text-xs h-10 px-4 rounded-xl"
+              >
+                Ver Comprobante
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-2">
         <h2 className="text-3xl font-black text-slate-900">Detalles</h2>
         <DetallesVentaTable detalles={detalles} />
@@ -208,6 +384,140 @@ export function DetalleVentaPage({ ventaId }: DetalleVentaPageProps) {
       >
         Volver
       </Button>
+
+      {/* Modal Pago Manual */}
+      {showManualModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 text-slate-900">
+            <h3 className="text-lg font-black text-slate-900 border-b pb-3 mb-4">Registrar Pago Manual</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              ¿Confirmar recepción de <strong>Bs. {Number(venta.total).toFixed(2)}</strong>? Esta acción registrará el pago y emitirá el comprobante inmediatamente.
+            </p>
+            <div className="space-y-4 text-left">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Método de Pago</label>
+                <select
+                  value={manualMethod}
+                  onChange={(e: any) => setManualMethod(e.target.value)}
+                  className="w-full h-10 border rounded-xl px-3 text-sm text-slate-900 bg-white"
+                >
+                  <option value="EFECTIVO">EFECTIVO</option>
+                  <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                  <option value="QR">QR</option>
+                  <option value="ADMINISTRATIVO">ADMINISTRATIVO</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Observación / Nota</label>
+                <textarea
+                  value={manualObs}
+                  onChange={(e) => setManualObs(e.target.value)}
+                  placeholder="Ej: Pago en efectivo en recepción."
+                  className="w-full p-3 border rounded-xl text-sm text-slate-900 h-20 bg-white resize-none"
+                />
+              </div>
+            </div>
+            {manualError && <p className="text-xs text-red-600 mt-3 font-semibold">{manualError}</p>}
+            <div className="flex justify-end gap-3 mt-6 border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowManualModal(false)}
+                className="rounded-xl font-semibold text-xs h-9 px-4"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleManualPay}
+                disabled={isConfirmingManual}
+                className="bg-[#6A24D4] hover:bg-[#5b1fbc] text-white rounded-xl font-semibold text-xs h-9 px-4"
+              >
+                {isConfirmingManual ? 'Registrando...' : 'Confirmar Recepción'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Stripe Link/QR & Polling */}
+      {showStripeModal && stripeUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl text-center animate-in fade-in zoom-in duration-200 text-slate-900">
+            <h3 className="text-lg font-black text-slate-900 border-b pb-3 mb-4">Pagar con Stripe</h3>
+            <p className="text-sm text-slate-600 mb-5">
+              Escanea el código QR o haz clic en el enlace para pagar de forma segura con tarjeta.
+            </p>
+            
+            <div className="flex justify-center mb-6">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(stripeUrl)}`}
+                alt="Stripe QR Code"
+                className="border p-2 rounded-xl bg-white shadow-sm"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={stripeUrl}
+                  className="flex-1 h-9 bg-slate-50 border rounded-xl px-3 text-xs text-slate-600"
+                />
+                <Button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(stripeUrl)
+                    setCopiedLink(true)
+                    setTimeout(() => setCopiedLink(false), 2000)
+                  }}
+                  className="bg-slate-200 text-slate-700 hover:bg-slate-300 font-semibold text-xs h-9 px-3 rounded-xl"
+                >
+                  {copiedLink ? 'Copiado!' : 'Copiar'}
+                </Button>
+              </div>
+
+              <div className="bg-violet-50 rounded-xl p-4 flex flex-col items-center justify-center gap-2">
+                {stripeStatus === 'PENDIENTE' && (
+                  <>
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#6A24D4] border-t-transparent"></div>
+                    <p className="text-xs text-slate-600 font-medium">Esperando confirmación del pago de Stripe...</p>
+                  </>
+                )}
+                {stripeStatus === 'PAGADO' && (
+                  <p className="text-xs text-emerald-600 font-bold uppercase">¡Pago aprobado correctamente!</p>
+                )}
+              </div>
+            </div>
+
+            {stripeError && <p className="text-xs text-red-600 mt-4 font-semibold">{stripeError}</p>}
+
+            <div className="flex justify-end gap-3 mt-6 border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowStripeModal(false)
+                  setStripePagoId(null)
+                  setStripeUrl(null)
+                }}
+                className="rounded-xl font-semibold text-xs h-9 px-4"
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Comprobante de Pago */}
+      {showComprobanteId && (
+        <ComprobantePagoModal
+          idComprobante={showComprobanteId}
+          onClose={() => setShowComprobanteId(null)}
+        />
+      )}
     </section>
   )
 }

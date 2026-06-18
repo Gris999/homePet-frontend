@@ -51,6 +51,7 @@ type MenuChild = {
     | '/Inventario_Movimientos'
     | '/ventas-pagos/ventas'
     | '/ventas-pagos/ventas/nueva'
+    | '/billing'
   hasAccess?: boolean
 }
 
@@ -79,6 +80,7 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
           { label: 'Cambiar contraseña', to: '/seguridad/cambiar-password' },
           { label: 'Bitácora y Seguridad', to: '/bitacora' },
           { label: 'Copias de Seguridad', to: '/gestionar-backups' },
+          { label: 'Mi Suscripción', to: '/billing' },
         ],
       },
       {
@@ -292,6 +294,7 @@ export function Sidebar({
 
   const permissionMap: Record<string, boolean> = {
     '/dashboard': true,
+    '/billing': true,
 
     '/Gestionar_Usuarios': canViewUsuarios,
     '/Gestionar_Roles_Permisos': canViewRoles,

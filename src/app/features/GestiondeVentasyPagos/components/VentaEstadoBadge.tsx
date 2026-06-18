@@ -3,6 +3,7 @@ import type { EstadoVenta } from '../types/ventas.types'
 
 const estadoClassMap: Record<string, string> = {
   PENDIENTE_COBRO: 'bg-amber-100 text-amber-800',
+  PAGADA: 'bg-emerald-100 text-emerald-800',
   ANULADA: 'bg-red-100 text-red-700',
 }
 
