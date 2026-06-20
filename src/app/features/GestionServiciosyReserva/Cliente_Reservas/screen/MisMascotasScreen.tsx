@@ -74,8 +74,10 @@ export function MisMascotasScreen() {
     (mascota) => getMascotaOwnerId(mascota) !== undefined,
   )
   const mascotas =
-    user?.role === 'CLIENT' && user.id && mascotasWithOwner.length > 0
-      ? rawMascotas.filter((mascota) => getMascotaOwnerId(mascota) === user.id)
+    user?.role === 'CLIENT' && user.id_usuario && mascotasWithOwner.length > 0
+      ? rawMascotas.filter(
+          (mascota) => getMascotaOwnerId(mascota) === user.id_usuario,
+        )
       : rawMascotas
 
   const canSubmit = useMemo(

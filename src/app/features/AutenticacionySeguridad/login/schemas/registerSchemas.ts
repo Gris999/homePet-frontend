@@ -2,6 +2,13 @@
 import { z } from 'zod'
 import { UserSchema } from './'
 
+export const passwordSchema = z
+  .string()
+  .min(8, { message: 'Minimo 8 caracteres' })
+  .regex(/[A-Z]/, { message: 'Debe incluir una mayuscula' })
+  .regex(/[a-z]/, { message: 'Debe incluir una minuscula' })
+  .regex(/[^A-Za-z0-9]/, { message: 'Debe incluir un caracter especial' })
+
 export const RegisterFormSchema = z.object({
   correo: z.string().email({ message: 'Email inválido' }),
   password: z.string().min(8, { message: 'Mínimo 8 caracteres' }),

@@ -10,6 +10,18 @@ type Props = {
   onOpenChange: (open: boolean) => void
 }
 
+const PASSWORD_RULE_MESSAGE =
+  'La contrasena debe tener al menos 8 caracteres, una mayuscula, una minuscula y un caracter especial.'
+
+function isStrongPassword(value: string) {
+  return (
+    value.length >= 8 &&
+    /[A-Z]/.test(value) &&
+    /[a-z]/.test(value) &&
+    /[^A-Za-z0-9]/.test(value)
+  )
+}
+
 const RegisterModal = ({ open, onOpenChange }: Props) => {
   const [form, setForm] = useState({
     correo: '',
@@ -34,6 +46,11 @@ const RegisterModal = ({ open, onOpenChange }: Props) => {
     setFormError(null)
 
     // 1. Validación básica de contraseñas
+    if (!isStrongPassword(form.password)) {
+      setFormError(PASSWORD_RULE_MESSAGE)
+      return
+    }
+
     if (form.password !== form.confirmPassword) {
       setFormError('Las contraseñas no coinciden')
       return
@@ -118,6 +135,9 @@ const RegisterModal = ({ open, onOpenChange }: Props) => {
                 required
                 className={inputStyles}
               />
+              <p className="text-xs text-gray-500 sm:col-span-2">
+                Debe incluir mayuscula, minuscula, un caracter especial y minimo 8 caracteres.
+              </p>
               <input
                 type="password"
                 name="confirmPassword"
