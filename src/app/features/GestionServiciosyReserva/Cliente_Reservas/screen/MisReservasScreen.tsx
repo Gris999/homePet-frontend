@@ -68,15 +68,19 @@ export function MisReservasScreen() {
     (mascota) => getMascotaOwnerId(mascota) !== undefined,
   )
   const mascotas =
-    user?.role === 'CLIENT' && user.id && mascotasWithOwner.length > 0
-      ? rawMascotas.filter((mascota) => getMascotaOwnerId(mascota) === user.id)
+    user?.role === 'CLIENT' && user.id_usuario && mascotasWithOwner.length > 0
+      ? rawMascotas.filter(
+          (mascota) => getMascotaOwnerId(mascota) === user.id_usuario,
+        )
       : rawMascotas
   const citasWithOwner = rawCitas.filter(
     (cita) => cita.usuario !== undefined || cita.correo_usuario,
   )
   const citas =
-    user?.role === 'CLIENT' && user.id && citasWithOwner.length > 0
-      ? rawCitas.filter((cita) => getCitaOwnerMatches(cita, user.id, user.correo))
+    user?.role === 'CLIENT' && user.id_usuario && citasWithOwner.length > 0
+      ? rawCitas.filter((cita) =>
+          getCitaOwnerMatches(cita, user.id_usuario, user.correo),
+        )
       : rawCitas
 
   const activeServicios = servicios.filter(

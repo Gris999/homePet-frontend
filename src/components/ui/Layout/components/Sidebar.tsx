@@ -48,6 +48,7 @@ type MenuChild = {
     | '/Gestionar_Categorias'
     | '/Gestionar_Proveedores'
     | '/Gestionar_Productos'
+    | '/Gestionar_Pedidos_Productos'
     | '/Inventario_Control'
     | '/Inventario_Movimientos'
     | '/ventas-pagos/ventas'
@@ -195,6 +196,10 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
             label: 'Seguimiento de pedidos',
             to: '/notificaciones/seguimiento',
           },
+          {
+            label: 'Gestionar pedidos',
+            to: '/Gestionar_Pedidos_Productos',
+          },
         ],
       },
       {
@@ -322,6 +327,7 @@ export function Sidebar({
 
     // Inventario y Proveedores
     '/Gestionar_Productos': true,
+    '/Gestionar_Pedidos_Productos': canViewVentas,
     '/Inventario_Control': true,
     '/Inventario_Movimientos': true,
     '/Gestionar_Categorias': true,

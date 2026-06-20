@@ -1,7 +1,3 @@
-import { useEffect, useMemo } from "react"
-import L from "leaflet"
-import "leaflet/dist/leaflet.css"
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet"
 
 interface AdopcionLocationPickerProps {
   latitud: string
@@ -9,24 +5,14 @@ interface AdopcionLocationPickerProps {
   onChange: (value: { latitud: string; longitud: string }) => void
 }
 
-const defaultCenter: [number, number] = [-17.7833, -63.1821]
-
-const pinIcon = L.divIcon({
-  className: "adoption-map-pin",
-  html: '<div style="width:18px;height:18px;border-radius:9999px;background:#F97316;border:3px solid #ffffff;box-shadow:0 8px 20px rgba(249,115,22,0.35);"></div>',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12],
-})
+const defaultLatitud = "-17.783300"
+const defaultLongitud = "-63.182100"
 
 export function AdopcionLocationPicker({ latitud, longitud, onChange }: AdopcionLocationPickerProps) {
-  const parsedPoint = useMemo(() => {
-    const lat = Number(latitud)
-    const lng = Number(longitud)
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
-    return [lat, lng] as [number, number]
-  }, [latitud, longitud])
-
-  const center = parsedPoint ?? defaultCenter
+  const hasCoordinates = Boolean(latitud && longitud)
+  const mapsUrl = hasCoordinates
+    ? `https://www.google.com/maps?q=${encodeURIComponent(`${latitud},${longitud}`)}`
+    : null
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) return
@@ -48,45 +34,70 @@ export function AdopcionLocationPicker({ latitud, longitud, onChange }: Adopcion
     <div className="space-y-3 md:col-span-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-[#374151]">Ubicacion en mapa</p>
-          <p className="text-xs text-[#6B7280]">Haz clic en el mapa para fijar la ubicacion de la publicacion.</p>
+          <p className="text-sm font-medium text-[#374151]">Ubicacion de referencia</p>
+          <p className="text-xs text-[#6B7280]">
+            Usa tu ubicacion actual o carga coordenadas manuales para la publicacion.
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={handleUseCurrentLocation}
-          className="h-10 rounded-xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#18181B] hover:bg-[#F9FAFB]"
-        >
-          Usar mi ubicacion
-        </button>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-        <MapContainer
-          center={center}
-          zoom={parsedPoint ? 16 : 12}
-          scrollWheelZoom
-          style={{ height: 300, width: "100%" }}
-        >
-          <TileLayer
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
-          <MapClickHandler
-            onPick={(point) =>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleUseCurrentLocation}
+            className="h-10 rounded-xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#18181B] hover:bg-[#F9FAFB]"
+          >
+            Usar mi ubicacion
+          </button>
+          <button
+            type="button"
+            onClick={() =>
               onChange({
-                latitud: point[0].toFixed(6),
-                longitud: point[1].toFixed(6),
+                latitud: defaultLatitud,
+                longitud: defaultLongitud,
               })
             }
-          />
-          <MapViewport point={parsedPoint ?? center} />
-          {parsedPoint && <Marker position={parsedPoint} icon={pinIcon} />}
-        </MapContainer>
+            className="h-10 rounded-xl border border-[#E5E7EB] bg-white px-4 text-sm font-medium text-[#18181B] hover:bg-[#F9FAFB]"
+          >
+            Usar referencia base
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl bg-[#FFF7ED] p-4 text-sm text-[#9A3412]">
+            <p className="font-semibold">Coordenadas sugeridas</p>
+            <p className="mt-2">Latitud base: {defaultLatitud}</p>
+            <p>Longitud base: {defaultLongitud}</p>
+            <p className="mt-3 text-xs text-[#7C2D12]">
+              Puedes reemplazarlas con tu ubicacion actual o copiar valores desde Google Maps.
+            </p>
+          </div>
+          <div className="rounded-xl bg-[#FAFAFA] p-4 text-sm text-[#18181B]">
+            <p className="font-semibold">Abrir en mapa</p>
+            <p className="mt-2 text-[#6B7280]">
+              Si ya cargaste latitud y longitud, puedes verificar el punto exacto en Google Maps.
+            </p>
+            {mapsUrl ? (
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex h-10 items-center rounded-xl border border-[#C4B5FD] bg-white px-4 font-medium text-[#6D28D9] hover:bg-[#F5F3FF]"
+              >
+                Ver punto en Google Maps
+              </a>
+            ) : (
+              <p className="mt-3 text-xs text-[#6B7280]">
+                Completa ambas coordenadas para habilitar el enlace.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#FAFAFA] px-4 py-3 text-sm text-[#18181B]">
         <span>
-          Coordenadas actuales: {parsedPoint ? `${parsedPoint[0].toFixed(6)}, ${parsedPoint[1].toFixed(6)}` : "sin seleccionar"}
+          Coordenadas actuales: {hasCoordinates ? `${latitud}, ${longitud}` : "sin seleccionar"}
         </span>
         <button
           type="button"
@@ -98,24 +109,4 @@ export function AdopcionLocationPicker({ latitud, longitud, onChange }: Adopcion
       </div>
     </div>
   )
-}
-
-function MapClickHandler({ onPick }: { onPick: (point: [number, number]) => void }) {
-  useMapEvents({
-    click(event) {
-      onPick([event.latlng.lat, event.latlng.lng])
-    },
-  })
-
-  return null
-}
-
-function MapViewport({ point }: { point: [number, number] }) {
-  const map = useMap()
-
-  useEffect(() => {
-    map.setView(point, point === defaultCenter ? 12 : 16)
-  }, [map, point])
-
-  return null
 }

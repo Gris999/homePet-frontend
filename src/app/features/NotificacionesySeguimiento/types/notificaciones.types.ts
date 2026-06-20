@@ -16,7 +16,7 @@ export interface CitaResumen {
   id_cita: number
   fecha_programada: string
   hora_inicio: string
-  hora_fin: string
+  hora_fin?: string | null
   estado: string
   servicio?: ServicioResumen | null
 }
@@ -53,6 +53,8 @@ export interface PedidoListItem {
   tipo_entrega: string
   estado_pedido: string
   total: number
+  cita?: CitaResumen | null
+  estado_pago?: string | null
   usuario_nombre?: string | null
   usuario_correo?: string | null
 }
@@ -76,11 +78,13 @@ export interface PedidoDetail {
   fecha_pedido: string
   tipo_entrega: string
   estado_pedido: string
+  cita?: CitaResumen | null
   subtotal: number
   costo_envio: number
   total: number
   observacion: string | null
   motivo_cancelacion: string | null
+  estado_pago?: string | null
   estado: string
   direccion_entrega: string | null
   fecha_creacion: string

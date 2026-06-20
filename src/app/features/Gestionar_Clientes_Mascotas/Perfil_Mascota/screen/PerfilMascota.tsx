@@ -1,11 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { Mascota } from "../../Gestionar_Mascotas/types"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PawPrint } from "lucide-react"
 import {
   useGetMascotaPerfilQuery,
   useGetMascotaHistorialClinicoQuery,
@@ -48,6 +47,12 @@ export function PerfilMascotaScreen() {
   } = useGetMascotaVacunasQuery(selectedMascotaId || 0, {
     skip: !selectedMascotaId,
   })
+
+  useEffect(() => {
+    if (!selectedMascotaId && mascotas.length > 0) {
+      setSelectedMascotaId(mascotas[0].id_mascota)
+    }
+  }, [mascotas, selectedMascotaId])
 
   return (
     <div className="space-y-6 p-6">
@@ -107,7 +112,7 @@ export function PerfilMascotaScreen() {
           {/* Perfil Básico */}
           {mascota && (
             <MascotaProfileCard
-              mascota={mascota}  text-white
+              mascota={mascota}
               isLoading={isLoadingMascota}
             />
           )}
