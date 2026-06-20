@@ -30,6 +30,7 @@ export const TAG_TYPES = [
   'InventarioDisponibilidad',
   'Pagos',
   'Comprobantes',
+  'Adopciones',
 ] as const
 
 export type TagType = (typeof TAG_TYPES)[number]

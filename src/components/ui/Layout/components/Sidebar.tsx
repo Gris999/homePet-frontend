@@ -25,6 +25,7 @@ type MenuChild = {
     | '/dashboard'
     | '/Gestionar_Clientes'
     | '/Gestionar_Mascotas'
+    | '/Gestionar_Adopciones'
     | '/Gestionar_Usuarios'
     | '/Gestionar_Roles_Permisos'
     | '/Gestionar_Servicios_Precios_Catalogo'
@@ -89,6 +90,7 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         children: [
           { label: 'Gestionar Clientes', to: '/Gestionar_Clientes' },
           { label: 'Gestionar Mascotas', to: '/Gestionar_Mascotas' },
+          { label: 'Gestionar Adopciones', to: '/Gestionar_Adopciones' },
         ],
       },
       {
@@ -304,6 +306,7 @@ export function Sidebar({
 
     '/Gestionar_Clientes': canViewClientes,
     '/Gestionar_Mascotas': canViewMascotas,
+    '/Gestionar_Adopciones': canViewMascotas,
 
     '/Gestionar_Clinicas_Veterinarias': canViewClinicas,
     '/Gestionar_Historia_Clinica': canViewMascotas,

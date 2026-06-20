@@ -27,6 +27,7 @@ import { Route as PublicAboutRouteImport } from './routes/_public/about'
 import { Route as ClientMisReservasRouteImport } from './routes/_client/mis-reservas'
 import { Route as ClientMisMascotasRouteImport } from './routes/_client/mis-mascotas'
 import { Route as ClientClienteRouteImport } from './routes/_client/cliente'
+import { Route as ClientAdopcionesRouteImport } from './routes/_client/adopciones'
 import { Route as ClientPerfil_MascotaRouteImport } from './routes/_client/Perfil_Mascota'
 import { Route as AdminGestionarBackupsRouteImport } from './routes/_admin/gestionar-backups'
 import { Route as AdminDashboardRouteImport } from './routes/_admin/dashboard'
@@ -53,6 +54,7 @@ import { Route as AdminGestionar_Clinicas_VeterinariasRouteImport } from './rout
 import { Route as AdminGestionar_ClientesRouteImport } from './routes/_admin/Gestionar_Clientes'
 import { Route as AdminGestionar_CategoriasRouteImport } from './routes/_admin/Gestionar_Categorias'
 import { Route as AdminGestionar_AgendaRouteImport } from './routes/_admin/Gestionar_Agenda'
+import { Route as AdminGestionar_AdopcionesRouteImport } from './routes/_admin/Gestionar_Adopciones'
 import { Route as DemoFormSimpleRouteImport } from './routes/demo/form.simple'
 import { Route as DemoFormAddressRouteImport } from './routes/demo/form.address'
 import { Route as PublicBillingSuccessRouteImport } from './routes/_public/billing.success'
@@ -148,6 +150,11 @@ const ClientMisMascotasRoute = ClientMisMascotasRouteImport.update({
 const ClientClienteRoute = ClientClienteRouteImport.update({
   id: '/cliente',
   path: '/cliente',
+  getParentRoute: () => ClientRoute,
+} as any)
+const ClientAdopcionesRoute = ClientAdopcionesRouteImport.update({
+  id: '/adopciones',
+  path: '/adopciones',
   getParentRoute: () => ClientRoute,
 } as any)
 const ClientPerfil_MascotaRoute = ClientPerfil_MascotaRouteImport.update({
@@ -292,6 +299,12 @@ const AdminGestionar_AgendaRoute = AdminGestionar_AgendaRouteImport.update({
   path: '/Gestionar_Agenda',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminGestionar_AdopcionesRoute =
+  AdminGestionar_AdopcionesRouteImport.update({
+    id: '/Gestionar_Adopciones',
+    path: '/Gestionar_Adopciones',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const DemoFormSimpleRoute = DemoFormSimpleRouteImport.update({
   id: '/demo/form/simple',
   path: '/demo/form/simple',
@@ -346,6 +359,7 @@ const AdminVentasPagosVentasIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
+  '/Gestionar_Adopciones': typeof AdminGestionar_AdopcionesRoute
   '/Gestionar_Agenda': typeof AdminGestionar_AgendaRoute
   '/Gestionar_Categorias': typeof AdminGestionar_CategoriasRoute
   '/Gestionar_Clientes': typeof AdminGestionar_ClientesRoute
@@ -372,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AdminDashboardRoute
   '/gestionar-backups': typeof AdminGestionarBackupsRoute
   '/Perfil_Mascota': typeof ClientPerfil_MascotaRoute
+  '/adopciones': typeof ClientAdopcionesRoute
   '/cliente': typeof ClientClienteRoute
   '/mis-mascotas': typeof ClientMisMascotasRoute
   '/mis-reservas': typeof ClientMisReservasRoute
@@ -398,6 +413,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
+  '/Gestionar_Adopciones': typeof AdminGestionar_AdopcionesRoute
   '/Gestionar_Agenda': typeof AdminGestionar_AgendaRoute
   '/Gestionar_Categorias': typeof AdminGestionar_CategoriasRoute
   '/Gestionar_Clientes': typeof AdminGestionar_ClientesRoute
@@ -424,6 +440,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AdminDashboardRoute
   '/gestionar-backups': typeof AdminGestionarBackupsRoute
   '/Perfil_Mascota': typeof ClientPerfil_MascotaRoute
+  '/adopciones': typeof ClientAdopcionesRoute
   '/cliente': typeof ClientClienteRoute
   '/mis-mascotas': typeof ClientMisMascotasRoute
   '/mis-reservas': typeof ClientMisReservasRoute
@@ -453,6 +470,7 @@ export interface FileRoutesById {
   '/_admin': typeof AdminRouteWithChildren
   '/_client': typeof ClientRouteWithChildren
   '/_public': typeof PublicRouteWithChildren
+  '/_admin/Gestionar_Adopciones': typeof AdminGestionar_AdopcionesRoute
   '/_admin/Gestionar_Agenda': typeof AdminGestionar_AgendaRoute
   '/_admin/Gestionar_Categorias': typeof AdminGestionar_CategoriasRoute
   '/_admin/Gestionar_Clientes': typeof AdminGestionar_ClientesRoute
@@ -479,6 +497,7 @@ export interface FileRoutesById {
   '/_admin/dashboard': typeof AdminDashboardRoute
   '/_admin/gestionar-backups': typeof AdminGestionarBackupsRoute
   '/_client/Perfil_Mascota': typeof ClientPerfil_MascotaRoute
+  '/_client/adopciones': typeof ClientAdopcionesRoute
   '/_client/cliente': typeof ClientClienteRoute
   '/_client/mis-mascotas': typeof ClientMisMascotasRoute
   '/_client/mis-reservas': typeof ClientMisReservasRoute
@@ -508,6 +527,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/Gestionar_Adopciones'
     | '/Gestionar_Agenda'
     | '/Gestionar_Categorias'
     | '/Gestionar_Clientes'
@@ -534,6 +554,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/gestionar-backups'
     | '/Perfil_Mascota'
+    | '/adopciones'
     | '/cliente'
     | '/mis-mascotas'
     | '/mis-reservas'
@@ -560,6 +581,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/Gestionar_Adopciones'
     | '/Gestionar_Agenda'
     | '/Gestionar_Categorias'
     | '/Gestionar_Clientes'
@@ -586,6 +608,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/gestionar-backups'
     | '/Perfil_Mascota'
+    | '/adopciones'
     | '/cliente'
     | '/mis-mascotas'
     | '/mis-reservas'
@@ -614,6 +637,7 @@ export interface FileRouteTypes {
     | '/_admin'
     | '/_client'
     | '/_public'
+    | '/_admin/Gestionar_Adopciones'
     | '/_admin/Gestionar_Agenda'
     | '/_admin/Gestionar_Categorias'
     | '/_admin/Gestionar_Clientes'
@@ -640,6 +664,7 @@ export interface FileRouteTypes {
     | '/_admin/dashboard'
     | '/_admin/gestionar-backups'
     | '/_client/Perfil_Mascota'
+    | '/_client/adopciones'
     | '/_client/cliente'
     | '/_client/mis-mascotas'
     | '/_client/mis-reservas'
@@ -801,6 +826,13 @@ declare module '@tanstack/react-router' {
       path: '/cliente'
       fullPath: '/cliente'
       preLoaderRoute: typeof ClientClienteRouteImport
+      parentRoute: typeof ClientRoute
+    }
+    '/_client/adopciones': {
+      id: '/_client/adopciones'
+      path: '/adopciones'
+      fullPath: '/adopciones'
+      preLoaderRoute: typeof ClientAdopcionesRouteImport
       parentRoute: typeof ClientRoute
     }
     '/_client/Perfil_Mascota': {
@@ -985,6 +1017,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminGestionar_AgendaRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/Gestionar_Adopciones': {
+      id: '/_admin/Gestionar_Adopciones'
+      path: '/Gestionar_Adopciones'
+      fullPath: '/Gestionar_Adopciones'
+      preLoaderRoute: typeof AdminGestionar_AdopcionesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/demo/form/simple': {
       id: '/demo/form/simple'
       path: '/demo/form/simple'
@@ -1052,6 +1091,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminGestionar_AdopcionesRoute: typeof AdminGestionar_AdopcionesRoute
   AdminGestionar_AgendaRoute: typeof AdminGestionar_AgendaRoute
   AdminGestionar_CategoriasRoute: typeof AdminGestionar_CategoriasRoute
   AdminGestionar_ClientesRoute: typeof AdminGestionar_ClientesRoute
@@ -1085,6 +1125,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminGestionar_AdopcionesRoute: AdminGestionar_AdopcionesRoute,
   AdminGestionar_AgendaRoute: AdminGestionar_AgendaRoute,
   AdminGestionar_CategoriasRoute: AdminGestionar_CategoriasRoute,
   AdminGestionar_ClientesRoute: AdminGestionar_ClientesRoute,
@@ -1125,6 +1166,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface ClientRouteChildren {
   ClientPerfil_MascotaRoute: typeof ClientPerfil_MascotaRoute
+  ClientAdopcionesRoute: typeof ClientAdopcionesRoute
   ClientClienteRoute: typeof ClientClienteRoute
   ClientMisMascotasRoute: typeof ClientMisMascotasRoute
   ClientMisReservasRoute: typeof ClientMisReservasRoute
@@ -1133,6 +1175,7 @@ interface ClientRouteChildren {
 
 const ClientRouteChildren: ClientRouteChildren = {
   ClientPerfil_MascotaRoute: ClientPerfil_MascotaRoute,
+  ClientAdopcionesRoute: ClientAdopcionesRoute,
   ClientClienteRoute: ClientClienteRoute,
   ClientMisMascotasRoute: ClientMisMascotasRoute,
   ClientMisReservasRoute: ClientMisReservasRoute,

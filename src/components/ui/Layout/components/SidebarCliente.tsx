@@ -20,6 +20,7 @@ type MenuChild = {
   to:
     | '/cliente'
     | '/mis-mascotas'
+    | '/adopciones'
     | '/mis-reservas'
     | '/Perfil_Mascota'
     | '/mi-cuenta/cambiar-password'
@@ -45,6 +46,7 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         icon: PawPrint,
         children: [
           { label: 'Registrar y ver mascotas', to: '/mis-mascotas' },
+          { label: 'Adopciones', to: '/adopciones' },
           { label: 'Perfil de mascota', to: '/Perfil_Mascota' },
         ],
       },
