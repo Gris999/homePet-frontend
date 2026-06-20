@@ -1,278 +1,266 @@
 import {
   Users,
   PawPrint,
-  Calendar as CalendarIcon,
   DollarSign,
+  ShoppingCart,
+  Heart,
+  RefreshCw,
 } from 'lucide-react'
-import { useMemo } from 'react'
+import { useCallback } from 'react'
 import { StatCard } from '../components/StatCard'
-import { AppointmentsTable } from '../components/AppointmentsTable'
-import { RecentActivity } from '../components/RecentActivity'
+import { SalesChart } from '../components/SalesChart'
+import { ReservationsPieChart } from '../components/ReservationsPieChart'
+import { TopServicesChart } from '../components/TopServicesChart'
+import { TopProductsChart } from '../components/TopProductsChart'
+import { LowStockTable } from '../components/LowStockTable'
+import { UpcomingReservations } from '../components/UpcomingReservations'
+import { AdoptionsList } from '../components/AdoptionsList'
 import { useAppSelector } from '#/store/hooks'
-import {
-  useGetDashboardCitasQuery,
-  useGetDashboardClientesQuery,
-  useGetDashboardMascotasQuery,
-} from '../store/dashboardApi'
-
-function isToday(dateInput?: string | null) {
-  if (!dateInput) return false
-  const date = new Date(dateInput)
-  if (Number.isNaN(date.getTime())) return false
-  const today = new Date()
-  return (
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-  )
-}
-
-function isCurrentMonth(dateInput?: string | null) {
-  if (!dateInput) return false
-  const date = new Date(dateInput)
-  if (Number.isNaN(date.getTime())) return false
-  const now = new Date()
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth()
-  )
-}
-
-function dateLabelFromNow(dateInput?: string | null) {
-  if (!dateInput) return 'Reciente'
-  const date = new Date(dateInput)
-  if (Number.isNaN(date.getTime())) return 'Reciente'
-  return date.toLocaleString()
-}
+import { useGetDashboardKPIsQuery } from '../store/dashboardApi'
 
 export function DashboardScreen() {
   const veterinaria = useAppSelector((state) => state.tenant.veterinaria)
-  const {
-    data: clientesData,
-    isLoading: clientesLoading,
-    error: clientesError,
-  } = useGetDashboardClientesQuery()
-  const {
-    data: mascotasData,
-    isLoading: mascotasLoading,
-    error: mascotasError,
-  } = useGetDashboardMascotasQuery()
-  const {
-    data: citasData = [],
-    isLoading: citasLoading,
-    error: citasError,
-  } = useGetDashboardCitasQuery()
 
-  const clientesTotal = clientesData?.count
-  const mascotasTotal = mascotasData?.count
-
-  const citasHoy = useMemo(
-    () =>
-      citasData.filter((cita) =>
-        isToday((cita as { fecha_programada?: string }).fecha_programada),
-      ),
-    [citasData],
+  const {
+    data: kpis,
+    isLoading,
+    error,
+    refetch,
+  } = useGetDashboardKPIsQuery(
+    { periodo: 'mes' },
+    { pollingInterval: 30000, refetchOnFocus: true },
   )
 
-  const ingresosMes = useMemo(() => {
-    return citasData.reduce((acc, cita) => {
-      const citaWithAny = cita as {
-        fecha_programada?: string
-        fecha_generada?: string
-        precio_servicio?: number
-        precio?: string
-      }
+  const resumen = kpis?.resumen
+  const ventas = kpis?.ventas
+  const reservas = kpis?.reservas
+  const inventario = kpis?.inventario
+  const adopciones = kpis?.adopciones
+  const alertas = kpis?.alertas
 
-      const baseDate =
-        citaWithAny.fecha_programada ?? citaWithAny.fecha_generada ?? null
-      if (!isCurrentMonth(baseDate)) return acc
+  const hasError = Boolean(error)
+  const ultimaActualizacion = kpis?.ultima_actualizacion
+    ? new Date(kpis.ultima_actualizacion).toLocaleTimeString('es', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    : null
 
-      if (typeof citaWithAny.precio_servicio === 'number') {
-        return acc + citaWithAny.precio_servicio
-      }
-      if (typeof citaWithAny.precio === 'string') {
-        const parsed = Number(citaWithAny.precio.replace(',', '.'))
-        if (!Number.isNaN(parsed)) return acc + parsed
-      }
-      return acc
-    }, 0)
-  }, [citasData])
-
-  const recentActivity = useMemo(
-    () =>
-      [...citasData]
-        .sort((a, b) => {
-          const aDate = new Date(
-            (a as { fecha_generada?: string; fecha_programada?: string })
-              .fecha_generada ??
-              (a as { fecha_programada?: string }).fecha_programada ??
-              0,
-          ).getTime()
-          const bDate = new Date(
-            (b as { fecha_generada?: string; fecha_programada?: string })
-              .fecha_generada ??
-              (b as { fecha_programada?: string }).fecha_programada ??
-              0,
-          ).getTime()
-          return bDate - aDate
-        })
-        .slice(0, 5)
-        .map((cita) => ({
-          id: String((cita as { id_cita?: number }).id_cita ?? Math.random()),
-          title: 'Cita registrada',
-          description: `${
-            (cita as { mascota_nombre?: string }).mascota_nombre ?? 'Mascota'
-          } - ${
-            (cita as { servicio_nombre?: string }).servicio_nombre ?? 'Servicio'
-          }`,
-          time: dateLabelFromNow(
-            (cita as { fecha_generada?: string; fecha_programada?: string })
-              .fecha_generada ??
-              (cita as { fecha_programada?: string }).fecha_programada,
-          ),
-        })),
-    [citasData],
-  )
+  const handleRefresh = useCallback(() => {
+    refetch()
+  }, [refetch])
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="mb-2">
-        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight font-sans">
-          Bienvenido
-        </h2>
-        <p className="text-gray-500 mt-1">
-          {veterinaria?.nombre
-            ? `Resumen de ${veterinaria.nombre}`
-            : 'Resumen de tu clinica veterinaria.'}
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight font-sans">
+            Dashboard
+          </h2>
+          <p className="text-gray-500 mt-1">
+            {veterinaria?.nombre
+              ? `Resumen de ${veterinaria.nombre}`
+              : 'Resumen de tu clínica veterinaria.'}
+            {ultimaActualizacion && (
+              <span className="ml-2 text-xs text-gray-400">
+                · Última actualización: {ultimaActualizacion}
+              </span>
+            )}
+          </p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw
+            className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}
+          />
+          Actualizar
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Alertas */}
+      {alertas && alertas.length > 0 && !hasError && (
+        <div className="flex flex-wrap gap-2">
+          {alertas.map((alerta, i) => (
+            <div
+              key={i}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                alerta.severidad === 'alta'
+                  ? 'bg-red-100 text-red-700'
+                  : alerta.severidad === 'media'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-blue-100 text-blue-700'
+              }`}
+            >
+              {alerta.mensaje}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatCard
-          title="Clientes Totales"
-          value={clientesTotal}
+          title="Ventas Hoy"
+          value={resumen?.ventas_dia ?? '--'}
           trend={
-            clientesError
+            hasError
               ? 'Error al cargar'
-              : clientesLoading
+              : isLoading
                 ? 'Cargando...'
-                : clientesTotal === 0
-                  ? 'Sin datos'
+                : (resumen?.ventas_dia ?? 0) === 0
+                  ? 'Sin ventas hoy'
                   : 'Datos reales'
           }
           trendUp={false}
-          hasError={Boolean(clientesError)}
+          hasError={hasError}
+          icon={<ShoppingCart className="w-5 h-5 text-purple-600" />}
+          iconBgSpan="bg-purple-100"
+        />
+        <StatCard
+          title="Ingresos Hoy"
+          value={
+            resumen?.ingresos_dia != null
+              ? `$${Number(resumen.ingresos_dia).toFixed(2)}`
+              : '--'
+          }
+          trend={
+            hasError
+              ? 'Error al cargar'
+              : isLoading
+                ? 'Cargando...'
+                : (resumen?.ingresos_dia ?? 0) === 0
+                  ? 'Sin ingresos'
+                  : 'Datos reales'
+          }
+          trendUp={false}
+          hasError={hasError}
+          icon={<DollarSign className="w-5 h-5 text-green-600" />}
+          iconBgSpan="bg-green-100"
+        />
+        <StatCard
+          title="Ventas del Mes"
+          value={resumen?.ventas_periodo ?? '--'}
+          trend={
+            hasError
+              ? 'Error al cargar'
+              : isLoading
+                ? 'Cargando...'
+                : (resumen?.ventas_periodo ?? 0) === 0
+                  ? 'Sin ventas'
+                  : 'Datos reales'
+          }
+          trendUp={false}
+          hasError={hasError}
+          icon={<ShoppingCart className="w-5 h-5 text-blue-600" />}
+          iconBgSpan="bg-blue-100"
+        />
+        <StatCard
+          title="Clientes"
+          value={resumen?.clientes_total ?? '--'}
+          trend={
+            hasError
+              ? 'Error al cargar'
+              : isLoading
+                ? 'Cargando...'
+                : (resumen?.clientes_total ?? 0) === 0
+                  ? 'Sin clientes'
+                  : `+${resumen?.clientes_nuevos_periodo ?? 0} este mes`
+          }
+          trendUp={true}
+          hasError={hasError}
           icon={<Users className="w-5 h-5 text-purple-600" />}
           iconBgSpan="bg-purple-100"
         />
         <StatCard
-          title="Mascotas Registradas"
-          value={mascotasTotal}
+          title="Mascotas"
+          value={resumen?.mascotas_total ?? '--'}
           trend={
-            mascotasError
+            hasError
               ? 'Error al cargar'
-              : mascotasLoading
+              : isLoading
                 ? 'Cargando...'
-                : mascotasTotal === 0
-                  ? 'Sin datos'
-                  : 'Datos reales'
+                : (resumen?.mascotas_total ?? 0) === 0
+                  ? 'Sin mascotas'
+                  : `+${resumen?.mascotas_nuevas_periodo ?? 0} este mes`
           }
-          trendUp={false}
-          hasError={Boolean(mascotasError)}
+          trendUp={true}
+          hasError={hasError}
           icon={<PawPrint className="w-5 h-5 text-orange-500" />}
           iconBgSpan="bg-orange-100"
         />
         <StatCard
-          title="Citas Hoy"
-          value={citasHoy.length}
+          title="Adopciones"
+          value={resumen?.adopciones_disponibles ?? '--'}
           trend={
-            citasError
+            hasError
               ? 'Error al cargar'
-              : citasLoading
+              : isLoading
                 ? 'Cargando...'
-                : citasHoy.length === 0
-                  ? 'Sin citas hoy'
-                  : 'Datos reales'
+                : (resumen?.adopciones_disponibles ?? 0) === 0
+                  ? 'Sin disponibles'
+                  : 'Disponibles'
           }
           trendUp={false}
-          hasError={Boolean(citasError)}
-          icon={<CalendarIcon className="w-5 h-5 text-purple-600" />}
-          iconBgSpan="bg-purple-100"
-        />
-        <StatCard
-          title="Ingresos del Mes"
-          value={`$${ingresosMes.toFixed(2)}`}
-          trend={
-            citasError
-              ? 'Error al cargar'
-              : citasLoading
-                ? 'Cargando...'
-                : ingresosMes === 0
-                  ? 'Sin facturacion'
-                  : 'Datos reales'
-          }
-          trendUp={false}
-          hasError={Boolean(citasError)}
-          icon={<DollarSign className="w-5 h-5 text-green-600" />}
-          iconBgSpan="bg-green-100"
+          hasError={hasError}
+          icon={<Heart className="w-5 h-5 text-pink-600" />}
+          iconBgSpan="bg-pink-100"
         />
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 h-80 flex flex-col">
-        <h3 className="text-lg font-bold text-gray-800 font-sans mb-4">
-          Consultas de la Semana
-        </h3>
-        <div className="flex-1 border-t border-dashed border-gray-200 mt-2 relative flex items-end justify-between px-4 pb-2">
-          <svg
-            className="absolute inset-0 w-full h-full preserve-3d"
-            preserveAspectRatio="none"
-            viewBox="0 0 100 40"
-          >
-            <path
-              d="M0 40 L100 40"
-              fill="none"
-              stroke="#E5E7EB"
-              strokeWidth="1"
-            />
-          </svg>
-          <div className="z-10 text-xs text-gray-400 w-full flex justify-between absolute bottom-1">
-            <span>Lun</span>
-            <span>Mar</span>
-            <span>Mie</span>
-            <span>Jue</span>
-            <span>Vie</span>
-            <span>Sab</span>
-            <span>Dom</span>
-          </div>
-        </div>
+      {/* Charts Row 1 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SalesChart
+          data={ventas?.por_dia || []}
+          isLoading={isLoading}
+          hasError={hasError}
+        />
+        <ReservationsPieChart
+          data={reservas?.por_estado || []}
+          isLoading={isLoading}
+          hasError={hasError}
+        />
       </div>
 
+      {/* Charts Row 2 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TopServicesChart
+          data={reservas?.servicios_mas_solicitados || []}
+          isLoading={isLoading}
+          hasError={hasError}
+        />
+        <TopProductsChart
+          data={ventas?.productos_mas_vendidos || []}
+          isLoading={isLoading}
+          hasError={hasError}
+        />
+      </div>
+
+      {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <AppointmentsTable
-            data={citasHoy.map((cita) => ({
-              id: String(cita.id_cita),
-              petName: cita.mascota_nombre ?? `Mascota #${cita.mascota}`,
-              petType: 'Mascota',
-              ownerName: cita.correo_usuario ?? 'Cliente',
-              service: cita.servicio_nombre ?? `Servicio #${cita.servicio}`,
-              time: cita.hora_inicio ?? 'Sin hora',
-              status:
-                cita.estado === 'CONFIRMADA'
-                  ? 'Confirmada'
-                  : cita.estado === 'PENDIENTE'
-                    ? 'Pendiente'
-                    : 'En espera',
-            }))}
-            isLoading={citasLoading}
-            hasError={Boolean(citasError)}
+        <div className="lg:col-span-1">
+          <UpcomingReservations
+            data={reservas?.proximas_reservas || []}
+            isLoading={isLoading}
+            hasError={hasError}
           />
         </div>
         <div className="lg:col-span-1">
-          <RecentActivity
-            items={recentActivity}
-            isLoading={citasLoading}
-            hasError={Boolean(citasError)}
+          <LowStockTable
+            data={inventario?.stock_bajo || []}
+            isLoading={isLoading}
+            hasError={hasError}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <AdoptionsList
+            data={adopciones?.lista || []}
+            isLoading={isLoading}
+            hasError={hasError}
           />
         </div>
       </div>

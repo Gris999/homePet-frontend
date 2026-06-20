@@ -31,6 +31,7 @@ export const TAG_TYPES = [
   'Pagos',
   'Comprobantes',
   'Adopciones',
+  'DashboardKPIs',
 ] as const
 
 export type TagType = (typeof TAG_TYPES)[number]

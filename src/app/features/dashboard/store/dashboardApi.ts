@@ -1,5 +1,9 @@
 import { api } from '#/store/api/api'
 import type { Reserva } from '#/app/features/GestionServiciosyReserva/Gestionar_Reservas/store/reservas.types'
+import type {
+  DashboardKPIData,
+  DashboardKPIsQueryParams,
+} from '../types'
 
 type UnknownRecord = Record<string, unknown>
 type UnknownListResponse = unknown[] | UnknownRecord
@@ -55,6 +59,19 @@ function logResponseShape(name: string, response: unknown, status?: number) {
 
 export const dashboardApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    getDashboardKPIs: builder.query<
+      DashboardKPIData,
+      DashboardKPIsQueryParams | void
+    >({
+      query: (params) => ({
+        url: 'reportes/dashboard-kpis/',
+        params: params || undefined,
+      }),
+      transformResponse: (response: unknown) => {
+        return response as DashboardKPIData
+      },
+      providesTags: ['DashboardKPIs'],
+    }),
     getDashboardClientes: builder.query<
       ReturnType<typeof normalizeListAndCount>,
       void
@@ -101,6 +118,7 @@ export const dashboardApi = api.injectEndpoints({
 })
 
 export const {
+  useGetDashboardKPIsQuery,
   useGetDashboardClientesQuery,
   useGetDashboardMascotasQuery,
   useGetDashboardCitasQuery,
