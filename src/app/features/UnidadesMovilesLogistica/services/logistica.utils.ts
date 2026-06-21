@@ -162,14 +162,21 @@ export function buildLocationsExport(routes: RutaProgramada[], selectedDate: str
     }
 
     for (const detail of route.detalle) {
+      const serviceName =
+        detail.cita?.servicio.nombre || (detail.pedido ? `Pedido PD-${detail.pedido.id_pedido}` : 'Sin servicio')
+      const petName = detail.cita?.mascota.nombre || 'Sin mascota'
+      const clientName =
+        detail.cita?.cliente.nombre || detail.pedido?.cliente.nombre || 'Sin cliente'
+      const address = detail.cita?.direccion_cita || detail.pedido?.direccion_entrega || 'Sin direccion'
+      const referenceTime = detail.hora_estimada || detail.cita?.hora_inicio
       lines.push(
         [
           `Orden ${detail.orden}`,
-          `Hora ${formatTime(detail.hora_estimada || detail.cita.hora_inicio)}`,
-          `Servicio ${detail.cita.servicio.nombre || 'Sin servicio'}`,
-          `Mascota ${detail.cita.mascota.nombre || 'Sin mascota'}`,
-          `Cliente ${detail.cita.cliente.nombre || 'Sin cliente'}`,
-          `Direccion ${detail.cita.direccion_cita || 'Sin direccion'}`,
+          `Hora ${formatTime(referenceTime)}`,
+          `Servicio ${serviceName}`,
+          `Mascota ${petName}`,
+          `Cliente ${clientName}`,
+          `Direccion ${address}`,
         ].join(' | '),
       )
     }
@@ -182,7 +189,10 @@ export function buildLocationsExport(routes: RutaProgramada[], selectedDate: str
 
 export function getCoverageLabel(route: RutaProgramada) {
   if (route.detalle.length === 0) return 'Sin cobertura definida aún'
-  const firstAddress = route.detalle.find((item) => item.cita.direccion_cita)?.cita.direccion_cita
+  const firstDetail = route.detalle.find(
+    (item) => item.cita?.direccion_cita || item.pedido?.direccion_entrega,
+  )
+  const firstAddress = firstDetail?.cita?.direccion_cita || firstDetail?.pedido?.direccion_entrega
   return firstAddress || 'Cobertura derivada de coordenadas activas'
 }
 
@@ -215,7 +225,7 @@ export function getNextRouteOrder(route: RutaProgramada) {
 
 export function getDetailByAppointmentId(routes: RutaProgramada[], citaId: number) {
   for (const route of routes) {
-    const detail = route.detalle.find((item) => item.cita.id_cita === citaId)
+    const detail = route.detalle.find((item) => item.cita?.id_cita === citaId)
     if (detail) return { route, detail }
   }
   return null

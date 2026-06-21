@@ -24,6 +24,8 @@ import {
 import { Input } from '#/components/ui/input'
 import { useAppSelector } from '#/store/hooks'
 import { useGetUsuariosQuery } from '#/app/features/AutenticacionySeguridad/Gestionar_Usuarios/store/gestionarUsuariosApi'
+import { useGetPedidosQuery } from '#/app/features/NotificacionesySeguimiento/store/notificacionesApi'
+import type { PedidoListItem } from '#/app/features/NotificacionesySeguimiento/types/notificaciones.types'
 import { useGetReservasQuery } from '../../Gestionar_Reservas/store/reservasApi'
 import type { Reserva } from '../../Gestionar_Reservas/store/reservas.types'
 import {
@@ -205,6 +207,40 @@ function getApiErrorMessage(error: unknown, fallback: string) {
   }
 
   return fallback
+}
+
+type AssignableRouteReference = {
+  key: string
+  kind: 'CITA' | 'PEDIDO'
+  id_cita?: number
+  id_pedido?: number
+  label: string
+  subtitle: string
+}
+
+function getDetailAddress(detail: DetalleRutaItem) {
+  return detail.cita?.direccion_cita || detail.pedido?.direccion_entrega || ''
+}
+
+function getDetailTitle(detail: DetalleRutaItem) {
+  if (detail.pedido?.id_pedido) return `Pedido PD-${detail.pedido.id_pedido}`
+  return detail.cita?.servicio.nombre || 'Servicio sin nombre'
+}
+
+function getDetailSupportText(detail: DetalleRutaItem) {
+  if (detail.pedido?.id_pedido && detail.cita?.servicio.nombre) {
+    return `Ligado a ${detail.cita.servicio.nombre}`
+  }
+  if (detail.pedido?.id_pedido) return 'Pedido de productos'
+  return detail.cita?.mascota.nombre || 'Sin referencia adicional'
+}
+
+function getDetailClientName(detail: DetalleRutaItem) {
+  return detail.cita?.cliente.nombre || detail.pedido?.cliente.nombre || 'Sin dato'
+}
+
+function getDetailClientPhone(detail: DetalleRutaItem) {
+  return detail.cita?.cliente.telefono || detail.pedido?.cliente.telefono || 'Sin telefono'
 }
 
 function buildLocationsExport(routes: RutaProgramada[], selectedDate: string) {
@@ -682,6 +718,219 @@ function AddDetailDialog({
   )
 }
 
+function AddStopDialog({
+  open,
+  onOpenChange,
+  route,
+  appointments,
+  pedidos,
+  allRoutes,
+  onSubmit,
+  isSaving,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  route: RutaProgramada | null
+  appointments: Reserva[]
+  pedidos: PedidoListItem[]
+  allRoutes: RutaProgramada[]
+  onSubmit: (payload: {
+    id_cita?: number
+    id_pedido?: number
+    orden: number
+    hora_estimada?: string | null
+  }) => Promise<void>
+  isSaving: boolean
+}) {
+  const [referenceKey, setReferenceKey] = useState('')
+  const [orden, setOrden] = useState('')
+  const [horaEstimada, setHoraEstimada] = useState('')
+  const [error, setError] = useState<string | null>(null)
+
+  const reset = () => {
+    setReferenceKey('')
+    setOrden('')
+    setHoraEstimada('')
+    setError(null)
+  }
+
+  const assignedCitaIds = useMemo(() => {
+    const ids = new Set<number>()
+    for (const item of allRoutes) {
+      if (item.estado !== 'PROGRAMADA' && item.estado !== 'EN_PROCESO') continue
+      for (const detail of item.detalle) {
+        if (detail.cita?.id_cita) ids.add(detail.cita.id_cita)
+      }
+    }
+    return ids
+  }, [allRoutes])
+
+  const assignedPedidoIds = useMemo(() => {
+    const ids = new Set<number>()
+    for (const item of allRoutes) {
+      if (item.estado !== 'PROGRAMADA' && item.estado !== 'EN_PROCESO') continue
+      for (const detail of item.detalle) {
+        if (detail.pedido?.id_pedido) ids.add(detail.pedido.id_pedido)
+      }
+    }
+    return ids
+  }, [allRoutes])
+
+  const availablePedidos = useMemo(() => {
+    if (!route) return []
+    return pedidos.filter((pedido) => {
+      if (pedido.tipo_entrega !== 'DOMICILIO') return false
+      if (['CANCELADO', 'ENTREGADO'].includes(pedido.estado_pedido)) return false
+      const effectiveDate = pedido.cita?.fecha_programada ?? pedido.fecha_pedido.slice(0, 10)
+      if (effectiveDate !== route.fecha) return false
+      if (assignedPedidoIds.has(pedido.id_pedido)) return false
+      if (pedido.cita?.id_cita && assignedCitaIds.has(pedido.cita.id_cita)) return false
+      return true
+    })
+  }, [assignedCitaIds, assignedPedidoIds, pedidos, route])
+
+  const linkedPedidoCitaIds = useMemo(
+    () =>
+      new Set(
+        availablePedidos
+          .map((pedido) => pedido.cita?.id_cita)
+          .filter((value): value is number => typeof value === 'number'),
+      ),
+    [availablePedidos],
+  )
+
+  const availableAppointments = useMemo(() => {
+    if (!route) return []
+    return appointments.filter((appointment) => {
+      if (appointment.modalidad !== 'DOMICILIO') return false
+      if (appointment.fecha_programada !== route.fecha) return false
+      if (route.detalle.some((detail) => detail.cita?.id_cita === appointment.id_cita)) return false
+      if (assignedCitaIds.has(appointment.id_cita)) return false
+      if (linkedPedidoCitaIds.has(appointment.id_cita)) return false
+      return true
+    })
+  }, [appointments, assignedCitaIds, linkedPedidoCitaIds, route])
+
+  const assignableReferences = useMemo<AssignableRouteReference[]>(() => {
+    const pedidosOptions = availablePedidos.map((pedido) => ({
+      key: `PEDIDO:${pedido.id_pedido}`,
+      kind: 'PEDIDO' as const,
+      id_pedido: pedido.id_pedido,
+      label: `PD-${pedido.id_pedido} · ${pedido.usuario_nombre || 'Cliente'}`,
+      subtitle: pedido.cita?.id_cita
+        ? `Pedido ligado a CT-${pedido.cita.id_cita}`
+        : `Pedido a domicilio · ${formatDateLabel(pedido.fecha_pedido.slice(0, 10))}`,
+    }))
+
+    const citaOptions = availableAppointments.map((appointment) => ({
+      key: `CITA:${appointment.id_cita}`,
+      kind: 'CITA' as const,
+      id_cita: appointment.id_cita,
+      label: `CT-${appointment.id_cita} · ${appointment.mascota_nombre || 'Mascota'}`,
+      subtitle: `${appointment.servicio_nombre || 'Servicio'} · ${formatTime(appointment.hora_inicio)}`,
+    }))
+
+    return [...pedidosOptions, ...citaOptions]
+  }, [availableAppointments, availablePedidos])
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) reset()
+        onOpenChange(nextOpen)
+      }}
+    >
+      <DialogContent className="max-w-2xl bg-white">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-violet-700">
+            Asignar parada a la ruta
+          </DialogTitle>
+          <DialogDescription>
+            Selecciona una cita o pedido a domicilio de la misma fecha y define su orden en el recorrido.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3">
+          <select
+            value={referenceKey}
+            onChange={(event) => setReferenceKey(event.target.value)}
+            className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-violet-300"
+          >
+            <option value="">Selecciona una cita o pedido disponible</option>
+            {assignableReferences.map((reference) => (
+              <option key={reference.key} value={reference.key}>
+                {reference.label} · {reference.subtitle}
+              </option>
+            ))}
+          </select>
+          <Input
+            type="number"
+            min="1"
+            placeholder="Orden"
+            value={orden}
+            onChange={(event) => setOrden(event.target.value)}
+          />
+          <Input
+            type="time"
+            value={horaEstimada}
+            onChange={(event) => setHoraEstimada(event.target.value)}
+          />
+          {assignableReferences.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No hay citas ni pedidos disponibles para asignar en la fecha seleccionada.
+            </p>
+          ) : null}
+          {error ? <p className="text-sm text-rose-700">{error}</p> : null}
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              reset()
+              onOpenChange(false)
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            className="bg-violet-600 text-white hover:bg-violet-700"
+            disabled={isSaving || !route}
+            onClick={async () => {
+              if (!referenceKey || !orden) {
+                setError('Selecciona una referencia y define un orden.')
+                return
+              }
+              const [kind, rawId] = referenceKey.split(':')
+              const referenceId = Number(rawId)
+              setError(null)
+              await onSubmit({
+                id_cita: kind === 'CITA' ? referenceId : undefined,
+                id_pedido: kind === 'PEDIDO' ? referenceId : undefined,
+                orden: Number(orden),
+                hora_estimada: horaEstimada ? `${horaEstimada}:00` : null,
+              }).then(() => {
+                reset()
+              }).catch((submitError: unknown) => {
+                setError(
+                  submitError instanceof Error
+                    ? submitError.message
+                    : 'No se pudo agregar la parada a la ruta.',
+                )
+              })
+            }}
+          >
+            Agregar parada
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function DetailCard({
   detail,
   canManage,
@@ -697,7 +946,8 @@ function DetailCard({
 }) {
   const [mapError, setMapError] = useState<string | null>(null)
   const [statusDraft, setStatusDraft] = useState<EstadoDetalleRuta>(detail.estado)
-  const canOpenMap = Boolean(parseCoordinates(detail.cita.direccion_cita))
+  const address = getDetailAddress(detail)
+  const canOpenMap = Boolean(parseCoordinates(address))
 
   return (
     <div className="rounded-2xl border border-violet-100 bg-violet-50/40 p-4">
@@ -708,7 +958,7 @@ function DetailCard({
               {detail.orden}
             </span>
             <h4 className="text-lg font-bold text-gray-900">
-              {detail.cita.servicio.nombre || 'Servicio sin nombre'}
+              {getDetailTitle(detail)}
             </h4>
             <span
               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -722,10 +972,13 @@ function DetailCard({
             Hora estimada: <span className="font-semibold">{formatTime(detail.hora_estimada)}</span>
           </p>
           <p className="text-sm text-gray-700">
-            Mascota: <span className="font-semibold">{detail.cita.mascota.nombre || 'Sin dato'}</span>
+            Referencia: <span className="font-semibold">{getDetailSupportText(detail)}</span>
           </p>
           <p className="text-sm text-gray-700">
-            Cliente: <span className="font-semibold">{detail.cita.cliente.nombre || 'Sin dato'}</span>
+            Mascota: <span className="font-semibold">{detail.cita?.mascota.nombre || 'Sin dato'}</span>
+          </p>
+          <p className="text-sm text-gray-700">
+            Cliente: <span className="font-semibold">{getDetailClientName(detail)}</span>
             {' · '}
             {detail.cita.cliente.telefono || 'Sin teléfono'}
           </p>
@@ -894,7 +1147,7 @@ function RouteCard({
                     onClick={() => onAssignAppointment(route)}
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Agregar cita
+                    Agregar parada
                     </Button>
                 ) : null}
                 {canManageRoutes ? (
@@ -940,7 +1193,7 @@ function RouteCard({
             <p className="mt-1 text-sm font-semibold text-gray-900">{formatDateLabel(route.fecha)}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Citas</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Paradas</p>
             <p className="mt-1 text-sm font-semibold text-gray-900">
               {route.cantidad_citas ?? route.detalle.length}
             </p>
@@ -948,7 +1201,7 @@ function RouteCard({
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">Primera parada</p>
             <p className="mt-1 text-sm font-semibold text-gray-900">
-              {route.detalle[0] ? formatTime(route.detalle[0].hora_estimada || route.detalle[0].cita.hora_inicio) : '--:--'}
+              {route.detalle[0] ? formatTime(route.detalle[0].hora_estimada || route.detalle[0].cita?.hora_inicio) : '--:--'}
             </p>
           </div>
           <div>
@@ -1033,6 +1286,9 @@ export function RutasProgramadasPage() {
     skip: !canManageRoutes,
   })
   const { data: reservas = [] } = useGetReservasQuery(undefined, {
+    skip: !canManageRoutes,
+  })
+  const { data: pedidos = [] } = useGetPedidosQuery(undefined, {
     skip: !canManageRoutes,
   })
   const { data: assignments = [] } = useGetAsignacionesUnidadesQuery(
@@ -1126,7 +1382,8 @@ export function RutasProgramadasPage() {
   }
 
   async function handleAssignDetail(payload: {
-    id_cita: number
+    id_cita?: number
+    id_pedido?: number
     orden: number
     hora_estimada?: string | null
   }) {
@@ -1137,7 +1394,7 @@ export function RutasProgramadasPage() {
         idRuta: selectedRouteForAssign.id_ruta,
         body: payload,
       }).unwrap()
-      setFeedback('Cita agregada a la ruta correctamente.')
+      setFeedback('Parada agregada a la ruta correctamente.')
       setAssignDialogOpen(false)
       setSelectedRouteForAssign(null)
       setExpandedRoutes((current) => ({
@@ -1145,7 +1402,7 @@ export function RutasProgramadasPage() {
         [selectedRouteForAssign.id_ruta]: true,
       }))
     } catch (error) {
-      throw new Error(getApiErrorMessage(error, 'No se pudo agregar la cita a la ruta.'))
+      throw new Error(getApiErrorMessage(error, 'No se pudo agregar la parada a la ruta.'))
     }
   }
 
@@ -1222,7 +1479,7 @@ export function RutasProgramadasPage() {
         isSaving={createRutaState.isLoading}
       />
 
-      <AddDetailDialog
+      <AddStopDialog
         open={assignDialogOpen}
         onOpenChange={(open) => {
           setAssignDialogOpen(open)
@@ -1230,6 +1487,7 @@ export function RutasProgramadasPage() {
         }}
         route={selectedRouteForAssign}
         appointments={reservas}
+        pedidos={pedidos}
         allRoutes={routes}
         onSubmit={handleAssignDetail}
         isSaving={addDetalleState.isLoading}
@@ -1242,7 +1500,7 @@ export function RutasProgramadasPage() {
               {isVeterinarian ? 'Mis rutas programadas' : 'Gestión de rutas programadas'}
             </h1>
             <p className="mt-2 text-lg text-gray-700">
-              Consulta y administra recorridos a domicilio, asigna citas por orden manual y registra el
+              Consulta y administra recorridos a domicilio, asigna citas y pedidos por orden manual y registra el
               avance operativo reutilizando <span className="font-semibold">seguimiento</span>.
             </p>
           </div>
@@ -1309,7 +1567,7 @@ export function RutasProgramadasPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Rutas asignadas" value={metrics.totalRoutes} accent="text-violet-700" />
-        <KpiCard label="Citas del recorrido" value={metrics.totalAppointments} accent="text-orange-600" />
+        <KpiCard label="Paradas del recorrido" value={metrics.totalAppointments} accent="text-orange-600" />
         <KpiCard label="Rutas en proceso" value={metrics.inProgress} accent="text-sky-700" />
         <KpiCard label="Paradas completadas" value={metrics.completedStops} accent="text-emerald-700" />
       </div>

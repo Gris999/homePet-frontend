@@ -14,13 +14,10 @@ import { Button } from '#/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { Textarea } from '#/components/ui/textarea'
-import {
-  type EstadoPago,
-  useGetPagosQuery,
-} from '#/app/features/GestiondeVentasyPagos/services/pagosApi'
+import type { EstadoPago } from '#/app/features/GestiondeVentasyPagos/services/pagosApi'
 import { useAppSelector } from '#/store/hooks'
-import { useGetPedidoDetailQuery, useGetPedidosQuery } from '../store/notificacionesApi'
-import type { PedidoDetail } from '../types/notificaciones.types'
+import { useGetPedidoDetailQuery, useGetPedidosQuery, useGetSeguimientosQuery } from '../store/notificacionesApi'
+import type { PedidoDetail, SeguimientoListItem } from '../types/notificaciones.types'
 import { formatDateTime, formatMoney } from '../utils/formatters'
 import { getStatusMeta } from '../utils/statusMaps'
 
@@ -40,6 +37,17 @@ type LocalProcessState = {
 type PaymentStatusMeta = {
   label: string
   className: string
+}
+
+type PaymentSource = 'PEDIDO_MOVIL' | 'CITA_SERVICIO' | 'BACKEND_ESTADO' | 'NONE'
+
+type ResolvedPayment = {
+  status: EstadoPago | null
+  source: PaymentSource
+  sourceLabel: string
+  detailLabel: string
+  methodLabel?: string | null
+  comprobanteLabel?: string | null
 }
 
 const SERVICE_KEYWORDS = [
@@ -95,6 +103,79 @@ function getSearchableText(detail?: PedidoDetail | null) {
     .toLowerCase()
 }
 
+function toEstadoPago(value?: string | null): EstadoPago | null {
+  if (!value) return null
+
+  const normalized = String(value).trim().toUpperCase()
+  const allowed: EstadoPago[] = [
+    'PENDIENTE',
+    'EN_PROCESO',
+    'PAGADO',
+    'RECHAZADO',
+    'FALLIDO',
+    'ANULADO',
+  ]
+
+  return allowed.includes(normalized as EstadoPago) ? (normalized as EstadoPago) : null
+}
+
+function buildSeguimientoContext(seguimientos: SeguimientoListItem[]) {
+  const pedidoIds = new Set<number>()
+  const citaIdByPedido = new Map<number, number>()
+
+  seguimientos.forEach((item) => {
+    const pedidoId = item.pedido?.id_pedido
+    if (!pedidoId) return
+
+    if (item.cita?.id_cita || item.tipo_seguimiento === 'SERVICIO' || item.tipo_seguimiento === 'CITA') {
+      pedidoIds.add(pedidoId)
+    }
+
+    if (item.cita?.id_cita && !citaIdByPedido.has(pedidoId)) {
+      citaIdByPedido.set(pedidoId, item.cita.id_cita)
+    }
+  })
+
+  return {
+    serviceLinkedPedidoIds: pedidoIds,
+    citaIdByPedido,
+  }
+}
+
+function buildResolvedPayment({
+  detailEstadoPago,
+  listEstadoPago,
+  serviceLinked,
+}: {
+  detailEstadoPago?: string | null
+  listEstadoPago?: string | null
+  serviceLinked?: boolean
+}): ResolvedPayment {
+  const backendStatus = toEstadoPago(detailEstadoPago) ?? toEstadoPago(listEstadoPago)
+
+  if (backendStatus) {
+    return {
+      status: backendStatus,
+      source: 'BACKEND_ESTADO',
+      sourceLabel: 'Estado informado por pedidos',
+      detailLabel: 'Estado de pago informado por el backend',
+      methodLabel: null,
+      comprobanteLabel: null,
+    }
+  }
+
+  return {
+    status: null,
+    source: serviceLinked ? 'CITA_SERVICIO' : 'NONE',
+    sourceLabel: serviceLinked ? 'Pago asociado a servicio' : 'Sin datos de pago',
+    detailLabel: serviceLinked
+      ? 'El pedido esta ligado a una cita/servicio, pero esta vista no pudo leer el estado real del pago desde la API actual'
+      : 'La API actual no devolvio estado de pago para este pedido',
+    methodLabel: null,
+    comprobanteLabel: null,
+  }
+}
+
 function dependsOnService(detail?: PedidoDetail | null, userRole?: string | null) {
   if (!detail) return false
   if (isVeterinarianRole(userRole)) return true
@@ -119,6 +200,13 @@ function getSuggestedActionLabel(stage: OrderStage) {
 }
 
 function getPaymentStatusMeta(status?: EstadoPago | null): PaymentStatusMeta {
+  if (!status) {
+    return {
+      label: 'Estado de pago no disponible',
+      className: 'border-slate-300 bg-slate-100 text-slate-700',
+    }
+  }
+
   if (status === 'PAGADO') {
     return {
       label: 'Pagado',
@@ -153,11 +241,37 @@ function getPaymentStatusMeta(status?: EstadoPago | null): PaymentStatusMeta {
       className: 'border-slate-300 bg-slate-100 text-slate-700',
     }
   }
-
   return {
     label: 'Pendiente de pago',
     className: 'border-amber-200 bg-amber-50 text-amber-700',
   }
+}
+
+function getOrderPaymentNarrative(stage: OrderStage, resolvedPayment: ResolvedPayment) {
+  if (resolvedPayment.status === 'PAGADO' && stage !== 'ENTREGADO') {
+    return 'Pago confirmado. El pedido aun requiere gestion operativa hasta su entrega.'
+  }
+
+  if (resolvedPayment.status === 'EN_PROCESO') {
+    return 'El pago esta en proceso; conviene validar confirmacion antes de cerrar el pedido.'
+  }
+
+  if (
+    (resolvedPayment.status === 'RECHAZADO' || resolvedPayment.status === 'FALLIDO') &&
+    stage !== 'CANCELADO'
+  ) {
+    return 'El pedido sigue abierto, pero el pago necesita regularizacion o nueva confirmacion.'
+  }
+
+  if (!resolvedPayment.status) {
+    return 'No hay pago resuelto todavia para este pedido.'
+  }
+
+  if (stage === 'ENTREGADO' && resolvedPayment.status !== 'PAGADO') {
+    return 'El pedido figura como entregado, pero el pago no aparece confirmado en esta vista.'
+  }
+
+  return 'El estado logistico y el estado de pago se ven consistentes con la informacion disponible.'
 }
 
 export function GestionarPedidosProductosScreen() {
@@ -177,7 +291,7 @@ export function GestionarPedidosProductosScreen() {
     isError: isErrorPedidos,
     refetch: refetchPedidos,
   } = useGetPedidosQuery()
-  const { data: pagos = [], refetch: refetchPagos } = useGetPagosQuery()
+  const { data: seguimientos = [] } = useGetSeguimientosQuery()
 
   useEffect(() => {
     if (isVeterinarian) {
@@ -207,27 +321,42 @@ export function GestionarPedidosProductosScreen() {
     return cache
   }, [selectedPedidoDetail])
 
+  const seguimientoContext = useMemo(
+    () => buildSeguimientoContext(seguimientos),
+    [seguimientos],
+  )
+
   const hydratedPedidos = useMemo(() => {
     return pedidos.map((pedido) => {
       const detail = detailCache.get(pedido.id_pedido)
       const local = localStateByPedido[pedido.id_pedido]
       const effectiveStatus = local?.estado ?? (pedido.estado_pedido as OrderStage)
-      const pago = pagos.find(
-        (item) =>
-          item.tipo_referencia === 'PEDIDO_MOVIL' &&
-          item.referencia_id === pedido.id_pedido,
-      )
+      const relatedCitaId =
+        detail?.cita?.id_cita ??
+        pedido.cita?.id_cita ??
+        seguimientoContext.citaIdByPedido.get(pedido.id_pedido) ??
+        null
+      const serviceLinked =
+        Boolean(relatedCitaId) ||
+        seguimientoContext.serviceLinkedPedidoIds.has(pedido.id_pedido) ||
+        dependsOnService(detail, userRole)
+      const resolvedPayment = buildResolvedPayment({
+        detailEstadoPago: detail?.estado_pago,
+        listEstadoPago: pedido.estado_pago,
+        serviceLinked,
+      })
 
       return {
         ...pedido,
         detail,
-        pago: pago ?? null,
+        resolvedPayment,
         effectiveStatus,
-        dependsOnService: Boolean(pedido.cita?.id_cita) || dependsOnService(detail, userRole),
+        dependsOnService: serviceLinked,
+        relatedCitaId,
         localNote: local?.nota ?? '',
       }
     })
-  }, [detailCache, localStateByPedido, pagos, pedidos, userRole])
+  }, [detailCache, localStateByPedido, pedidos, seguimientoContext, userRole])
 
   const filteredPedidos = useMemo(() => {
     const term = searchTerm.trim().toLowerCase()
@@ -277,12 +406,21 @@ export function GestionarPedidosProductosScreen() {
 
   const selectedStatus = selectedPedido?.effectiveStatus ?? null
   const selectedDependsOnService =
-    Boolean(selectedPedidoDetail?.cita?.id_cita) || dependsOnService(selectedPedidoDetail, userRole)
-  const selectedPaymentMeta = getPaymentStatusMeta(
-    (selectedPedidoDetail?.estado_pago as EstadoPago | null | undefined) ??
-      (selectedPedido?.estado_pago as EstadoPago | null | undefined) ??
-      selectedPedido?.pago?.estado_pago,
-  )
+    Boolean(
+      selectedPedidoDetail?.cita?.id_cita ??
+        selectedPedido?.relatedCitaId ??
+        seguimientoContext.citaIdByPedido.get(selectedPedidoDetail?.id_pedido ?? 0),
+    ) ||
+    selectedPedido?.dependsOnService ||
+    dependsOnService(selectedPedidoDetail, userRole)
+  const selectedResolvedPayment =
+    selectedPedido?.resolvedPayment ??
+    buildResolvedPayment({
+      detailEstadoPago: selectedPedidoDetail?.estado_pago,
+      listEstadoPago: selectedPedido?.estado_pago,
+      serviceLinked: Boolean(selectedPedido?.dependsOnService),
+    })
+  const selectedPaymentMeta = getPaymentStatusMeta(selectedResolvedPayment.status)
 
   const kpis = useMemo(() => {
     const total = hydratedPedidos.length
@@ -405,7 +543,6 @@ export function GestionarPedidosProductosScreen() {
                 variant="outline"
                 onClick={() => {
                   refetchPedidos()
-                  refetchPagos()
                   if (selectedPedidoId) refetchPedidoDetail()
                 }}
                 className="h-12 rounded-2xl border-orange-200 text-orange-600 hover:bg-orange-50"
@@ -457,9 +594,7 @@ export function GestionarPedidosProductosScreen() {
               {filteredPedidos.map((pedido) => {
                 const isSelected = pedido.id_pedido === selectedPedidoId
                 const statusMeta = getStatusMeta(pedido.effectiveStatus)
-                const paymentMeta = getPaymentStatusMeta(
-                  (pedido.estado_pago as EstadoPago | null | undefined) ?? pedido.pago?.estado_pago,
-                )
+                const paymentMeta = getPaymentStatusMeta(pedido.resolvedPayment.status)
 
                 return (
                   <button
@@ -482,6 +617,14 @@ export function GestionarPedidosProductosScreen() {
                           <Badge variant="outline" className={paymentMeta.className}>
                             {paymentMeta.label}
                           </Badge>
+                          {pedido.resolvedPayment.source === 'CITA_SERVICIO' ? (
+                            <Badge
+                              variant="outline"
+                              className="border-sky-200 bg-sky-50 text-sky-700"
+                            >
+                              Pago por servicio
+                            </Badge>
+                          ) : null}
                           {pedido.dependsOnService && (
                             <Badge
                               variant="outline"
@@ -502,6 +645,9 @@ export function GestionarPedidosProductosScreen() {
                               Servicio asociado: {pedido.cita.servicio.nombre}
                             </p>
                           ) : null}
+                          <p className="mt-1 text-xs text-slate-500">
+                            {pedido.resolvedPayment.sourceLabel}
+                          </p>
                           <p className="mt-1">
                             {pedido.tipo_entrega} · {formatDateTime(pedido.fecha_pedido)}
                           </p>
@@ -559,14 +705,20 @@ export function GestionarPedidosProductosScreen() {
                       <Badge variant="outline" className={selectedPaymentMeta.className}>
                         {selectedPaymentMeta.label}
                       </Badge>
-                      {selectedPedido?.pago?.metodo_pago ? (
+                      {selectedResolvedPayment.methodLabel ? (
                         <Badge
                           variant="outline"
                           className="border-slate-200 bg-white text-slate-700"
                         >
-                          Metodo: {selectedPedido.pago.metodo_pago}
+                          Metodo: {selectedResolvedPayment.methodLabel}
                         </Badge>
                       ) : null}
+                      <Badge
+                        variant="outline"
+                        className="border-sky-200 bg-white text-sky-700"
+                      >
+                        {selectedResolvedPayment.sourceLabel}
+                      </Badge>
                       {selectedPedidoDetail.cita?.servicio?.nombre ? (
                         <Badge
                           variant="outline"
@@ -580,11 +732,25 @@ export function GestionarPedidosProductosScreen() {
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       <InfoLine label="Entrega" value={selectedPedidoDetail.tipo_entrega} />
                       <InfoLine
+                        label="Estado pedido"
+                        value={
+                          STAGE_LABELS[
+                            (selectedStatus || selectedPedidoDetail.estado_pedido) as OrderStage
+                          ] || selectedPedidoDetail.estado_pedido
+                        }
+                      />
+                      <InfoLine label="Estado pago" value={selectedPaymentMeta.label} />
+                      <InfoLine label="Origen pago" value={selectedResolvedPayment.sourceLabel} />
+                      <InfoLine
                         label="Direccion"
                         value={selectedPedidoDetail.direccion_entrega || 'Sin direccion registrada'}
                       />
                       <InfoLine label="Fecha" value={formatDateTime(selectedPedidoDetail.fecha_pedido)} />
                       <InfoLine label="Total" value={formatMoney(selectedPedidoDetail.total)} />
+                      <InfoLine
+                        label="Metodo pago"
+                        value={selectedResolvedPayment.methodLabel || 'Sin metodo registrado'}
+                      />
                       <InfoLine
                         label="Cita asociada"
                         value={
@@ -602,14 +768,14 @@ export function GestionarPedidosProductosScreen() {
                       <InfoLine
                         label="Comprobante"
                         value={
-                          selectedPedido?.pago?.comprobante?.numero_comprobante ||
-                          'Sin comprobante emitido'
+                          selectedResolvedPayment.comprobanteLabel || 'Sin comprobante emitido'
                         }
                       />
+                      <InfoLine label="Fuente de lectura" value={selectedResolvedPayment.detailLabel} />
                     </div>
                   </div>
 
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="grid gap-3 md:grid-cols-3">
                     <OperationalCard
                       title="Dependencia clinica"
                       icon={Stethoscope}
@@ -627,6 +793,16 @@ export function GestionarPedidosProductosScreen() {
                       accent="orange"
                       body={getSuggestedActionLabel(
                         (selectedStatus || selectedPedidoDetail.estado_pedido) as OrderStage,
+                      )}
+                    />
+
+                    <OperationalCard
+                      title="Lectura pago vs despacho"
+                      icon={PackageCheck}
+                      accent="violet"
+                      body={getOrderPaymentNarrative(
+                        (selectedStatus || selectedPedidoDetail.estado_pedido) as OrderStage,
+                        selectedResolvedPayment,
                       )}
                     />
                   </div>

@@ -1,5 +1,7 @@
 import { api } from '#/store/api/api'
 import type {
+  CitaRutaItem,
+  DetalleRutaItem,
   RolOperativoAsignacion,
   RutaProgramada,
   UnidadMovil,
@@ -13,6 +15,42 @@ function normalizeListResponse<T>(response: ListResponse<T>) {
   if (Array.isArray(response.results)) return response.results
   if (Array.isArray(response.data)) return response.data
   return []
+}
+
+function buildSyntheticCita(detail: DetalleRutaItem): CitaRutaItem {
+  const pedido = detail.pedido
+  return {
+    id_cita: detail.cita?.id_cita ?? -(pedido?.id_pedido ?? detail.id_detalle_ruta),
+    fecha_programada: pedido?.fecha_pedido?.slice(0, 10) || '',
+    hora_inicio: detail.hora_estimada || '00:00:00',
+    hora_fin: null,
+    modalidad: 'DOMICILIO',
+    direccion_cita: pedido?.direccion_entrega ?? null,
+    estado: pedido?.estado_pedido || detail.estado,
+    servicio: {
+      id_servicio: 0,
+      nombre: pedido ? `Pedido PD-${pedido.id_pedido}` : 'Sin servicio',
+    },
+    mascota: {
+      id_mascota: 0,
+      nombre: pedido ? 'Pedido sin cita asociada' : 'Sin mascota',
+    },
+    cliente: pedido?.cliente ?? {
+      id_usuario: 0,
+      nombre: 'Sin cliente',
+      telefono: null,
+    },
+  }
+}
+
+function normalizeRoute(route: RutaProgramada): RutaProgramada {
+  return {
+    ...route,
+    detalle: (route.detalle || []).map((detail) => ({
+      ...detail,
+      cita: detail.cita ?? buildSyntheticCita(detail),
+    })),
+  }
 }
 
 export const logisticaApi = api.injectEndpoints({
@@ -31,7 +69,7 @@ export const logisticaApi = api.injectEndpoints({
         },
       }),
       transformResponse: (response: ListResponse<RutaProgramada>) =>
-        normalizeListResponse(response),
+        normalizeListResponse(response).map(normalizeRoute),
       providesTags: ['Appointments'],
     }),
     getMisRutas: builder.query<RutaProgramada[], { fecha?: string } | void>({
@@ -50,7 +88,7 @@ export const logisticaApi = api.injectEndpoints({
         }
       },
       transformResponse: (response: ListResponse<RutaProgramada>) =>
-        normalizeListResponse(response),
+        normalizeListResponse(response).map(normalizeRoute),
       providesTags: ['Appointments'],
     }),
     getUnidadesMoviles: builder.query<UnidadMovil[], void>({
@@ -216,7 +254,10 @@ export const logisticaApi = api.injectEndpoints({
     }),
     addDetalleRuta: builder.mutation<
       unknown,
-      { idRuta: number; body: { id_cita: number; orden: number; hora_estimada?: string | null } }
+      {
+        idRuta: number
+        body: { id_cita?: number; id_pedido?: number; orden: number; hora_estimada?: string | null }
+      }
     >({
       query: ({ idRuta, body }) => ({
         url: `rutas-programadas/${idRuta}/detalle/`,

@@ -52,6 +52,7 @@ export interface SeguimientoRutaItem {
   estado_actual: string
   descripcion?: string | null
   fecha_hora: string
+  origen?: 'CITA' | 'PEDIDO' | string
 }
 
 export interface CitaRutaItem {
@@ -67,12 +68,25 @@ export interface CitaRutaItem {
   cliente: ClienteRuta
 }
 
+export interface PedidoRutaItem {
+  id_pedido: number
+  fecha_pedido: string
+  tipo_entrega: string
+  estado_pedido: string
+  direccion_entrega?: string | null
+  total: number
+  cliente: ClienteRuta
+}
+
 export interface DetalleRutaItem {
   id_detalle_ruta: number
   orden: number
   hora_estimada?: string | null
   estado: EstadoDetalleRuta
-  cita: CitaRutaItem
+  cita?: CitaRutaItem | null
+  pedido?: PedidoRutaItem | null
+  tipo_referencia?: 'CITA' | 'PEDIDO' | string
+  referencia_id?: number | null
   seguimiento: SeguimientoRutaItem[]
 }
 

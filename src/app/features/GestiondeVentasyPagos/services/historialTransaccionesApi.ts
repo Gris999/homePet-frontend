@@ -26,7 +26,7 @@ export const historialTransaccionesApi = api.injectEndpoints({
     >({
       query: (params) => ({
         url: 'gestion/ventas-pagos/historial-transacciones/',
-        params: cleanParams(params),
+        params: cleanParams(params ?? undefined),
       }),
     }),
     getHistorialTransaccionDetalle: builder.query<HistorialTransaccionDetalle, number>({

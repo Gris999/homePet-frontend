@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Plus, RefreshCw, Route, Trash2 } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent } from '#/components/ui/card'
+import { useGetPedidosQuery } from '#/app/features/NotificacionesySeguimiento/store/notificacionesApi'
+import type { PedidoListItem } from '#/app/features/NotificacionesySeguimiento/types/notificaciones.types'
 import { Input } from '#/components/ui/input'
 import { useGetReservasQuery } from '#/app/features/GestionServiciosyReserva/Gestionar_Reservas/store/reservasApi'
 import type { Reserva } from '#/app/features/GestionServiciosyReserva/Gestionar_Reservas/store/reservas.types'
@@ -25,6 +27,17 @@ import {
   useRemoveDetalleRutaMutation,
 } from '../store/logisticaApi'
 
+type MobileRouteCandidate = {
+  key: string
+  kind: 'CITA' | 'PEDIDO'
+  label: string
+  subtitle: string
+  address: string
+  id_cita?: number
+  id_pedido?: number
+  timeLabel?: string | null
+}
+
 export function AsignarServiciosMovilesScreen() {
   const authUser = useAppSelector((state) => state.auth.user)
   const persistedUser = useMemo(() => loadPersistedAuthUser(), [])
@@ -36,6 +49,7 @@ export function AsignarServiciosMovilesScreen() {
 
   const routesQuery = useGetRutasProgramadasQuery({ fecha: selectedDate }, { skip: !canAccess })
   const reservasQuery = useGetReservasQuery(undefined, { skip: !canAccess })
+  const pedidosQuery = useGetPedidosQuery(undefined, { skip: !canAccess })
   const assignmentsQuery = useGetAsignacionesUnidadesQuery(
     { fecha: selectedDate, estado: 'activo' },
     { skip: !canAccess },
@@ -45,6 +59,7 @@ export function AsignarServiciosMovilesScreen() {
 
   const routes = routesQuery.data ?? []
   const reservas = reservasQuery.data ?? []
+  const pedidos = pedidosQuery.data ?? []
   const assignments = assignmentsQuery.data ?? []
 
   const activeRoutes = useMemo(() => routes.filter((route) => isActiveRoute(route)), [routes])
@@ -52,13 +67,73 @@ export function AsignarServiciosMovilesScreen() {
     return new Map(assignments.map((assignment) => [assignment.id_unidad, assignment]))
   }, [assignments])
 
+  const assignedPedidoIds = useMemo(() => {
+    return new Set(
+      activeRoutes.flatMap((route) =>
+        route.detalle
+          .map((detail) => detail.pedido?.id_pedido)
+          .filter((value): value is number => typeof value === 'number'),
+      ),
+    )
+  }, [activeRoutes])
+
   const pendingHomeServices = useMemo(() => {
+    const linkedPedidoCitaIds = new Set(
+      pedidos
+        .filter((pedido) => {
+          if (pedido.tipo_entrega !== 'DOMICILIO') return false
+          if (['CANCELADO', 'ENTREGADO'].includes(pedido.estado_pedido)) return false
+          return (pedido.cita?.fecha_programada ?? pedido.fecha_pedido.slice(0, 10)) === selectedDate
+        })
+        .map((pedido) => pedido.cita?.id_cita)
+        .filter((value): value is number => typeof value === 'number'),
+    )
+
     return reservas.filter((appointment) => {
       if (appointment.modalidad !== 'DOMICILIO') return false
       if (appointment.fecha_programada !== selectedDate) return false
+      if (linkedPedidoCitaIds.has(appointment.id_cita)) return false
       return !getDetailByAppointmentId(activeRoutes, appointment.id_cita)
     })
-  }, [activeRoutes, reservas, selectedDate])
+  }, [activeRoutes, pedidos, reservas, selectedDate])
+
+  const pendingHomeOrders = useMemo(() => {
+    return pedidos.filter((pedido) => {
+      if (pedido.tipo_entrega !== 'DOMICILIO') return false
+      if (['CANCELADO', 'ENTREGADO'].includes(pedido.estado_pedido)) return false
+      const effectiveDate = pedido.cita?.fecha_programada ?? pedido.fecha_pedido.slice(0, 10)
+      if (effectiveDate !== selectedDate) return false
+      if (assignedPedidoIds.has(pedido.id_pedido)) return false
+      if (pedido.cita?.id_cita && getDetailByAppointmentId(activeRoutes, pedido.cita.id_cita)) return false
+      return true
+    })
+  }, [activeRoutes, assignedPedidoIds, pedidos, selectedDate])
+
+  const pendingStops = useMemo<MobileRouteCandidate[]>(() => {
+    const orderCandidates = pendingHomeOrders.map((pedido) => ({
+      key: `PEDIDO:${pedido.id_pedido}`,
+      kind: 'PEDIDO' as const,
+      label: `PD-${pedido.id_pedido} · ${pedido.usuario_nombre || 'Cliente'}`,
+      subtitle: pedido.cita?.id_cita
+        ? `Ligado a CT-${pedido.cita.id_cita}`
+        : 'Pedido a domicilio',
+      address: pedido.cita?.direccion_cita || '',
+      id_pedido: pedido.id_pedido,
+      timeLabel: pedido.cita?.hora_inicio || null,
+    }))
+
+    const citaCandidates = pendingHomeServices.map((appointment) => ({
+      key: `CITA:${appointment.id_cita}`,
+      kind: 'CITA' as const,
+      label: `CT-${appointment.id_cita} · ${appointment.mascota_nombre || 'Mascota sin nombre'}`,
+      subtitle: appointment.servicio_nombre || 'Servicio',
+      address: appointment.direccion_cita || '',
+      id_cita: appointment.id_cita,
+      timeLabel: appointment.hora_inicio,
+    }))
+
+    return [...orderCandidates, ...citaCandidates]
+  }, [pendingHomeOrders, pendingHomeServices])
 
   const assignedHomeServices = useMemo(() => {
     return activeRoutes.flatMap((route) =>
@@ -103,7 +178,12 @@ export function AsignarServiciosMovilesScreen() {
 
   function getZoneCompatibility(
     routeId: number,
-    appointment: Pick<Reserva, 'direccion_cita' | 'id_cita'>,
+    candidate: {
+      address?: string | null
+      direccion_cita?: string | null
+      id_cita?: number
+      id_pedido?: number
+    },
   ) {
     const route = activeRoutes.find((item) => item.id_ruta === routeId)
     if (!route) {
@@ -126,7 +206,7 @@ export function AsignarServiciosMovilesScreen() {
     const belongsToZone = appointmentBelongsToZone(
       assignment.zona_nombre,
       assignment.zona_descripcion,
-      appointment.direccion_cita,
+      candidate.address ?? candidate.direccion_cita,
     )
 
     if (belongsToZone) {
@@ -146,14 +226,19 @@ export function AsignarServiciosMovilesScreen() {
 
   function validateZoneAssignment(
     routeId: number,
-    appointment: Pick<Reserva, 'direccion_cita' | 'id_cita'>,
+    candidate: {
+      address?: string | null
+      direccion_cita?: string | null
+      id_cita?: number
+      id_pedido?: number
+    },
   ) {
-    const compatibility = getZoneCompatibility(routeId, appointment)
+    const compatibility = getZoneCompatibility(routeId, candidate)
     if (compatibility.allowed) return true
 
     const message = [
-      `La cita #${appointment.id_cita} no parece pertenecer a la zona "${compatibility.assignment?.zona_nombre || 'sin zona'}".`,
-      `Direccion detectada: ${appointment.direccion_cita || 'sin direccion registrada'}.`,
+      `${candidate.id_pedido ? `El pedido #${candidate.id_pedido}` : `La cita #${candidate.id_cita}`} no parece pertenecer a la zona "${compatibility.assignment?.zona_nombre || 'sin zona'}".`,
+      `Direccion detectada: ${candidate.address ?? candidate.direccion_cita ?? 'sin direccion registrada'}.`,
       'Actualiza la zona o usa una unidad compatible antes de asignarla.',
     ].join('\n')
 
@@ -161,25 +246,28 @@ export function AsignarServiciosMovilesScreen() {
     return false
   }
 
-  async function assignAppointmentToRoute(appointment: Reserva, routeId: number) {
+  async function assignStopToRoute(candidate: MobileRouteCandidate, routeId: number) {
     const route = activeRoutes.find((item) => item.id_ruta === routeId)
     if (!route) return
-    if (!validateZoneAssignment(routeId, appointment)) return
+    if (!validateZoneAssignment(routeId, candidate)) return
 
     try {
       await addDetalleRuta({
         idRuta: route.id_ruta,
         body: {
-          id_cita: appointment.id_cita,
+          id_cita: candidate.id_cita,
+          id_pedido: candidate.id_pedido,
           orden: getNextRouteOrder(route),
-          hora_estimada: appointment.hora_inicio,
+          hora_estimada: candidate.timeLabel || undefined,
         },
       }).unwrap()
-      setFeedback('Servicio movil asignado correctamente.')
+      setFeedback('Parada movil asignada correctamente.')
     } catch (submitError) {
-      setFeedback(getApiErrorMessage(submitError, 'No se pudo asignar el servicio movil.'))
+      setFeedback(getApiErrorMessage(submitError, 'No se pudo asignar la parada movil.'))
     }
   }
+
+  const assignAppointmentToRoute = assignStopToRoute
 
   async function reassignAppointment(appointmentId: number, targetRouteId: number) {
     const currentAssignment = getDetailByAppointmentId(activeRoutes, appointmentId)
@@ -187,8 +275,9 @@ export function AsignarServiciosMovilesScreen() {
     if (!currentAssignment || !targetRoute) return
     if (
       !validateZoneAssignment(targetRouteId, {
-        id_cita: currentAssignment.detail.cita.id_cita,
-        direccion_cita: currentAssignment.detail.cita.direccion_cita || '',
+        id_cita: currentAssignment.detail.pedido?.id_pedido ? undefined : currentAssignment.detail.cita.id_cita,
+        id_pedido: currentAssignment.detail.pedido?.id_pedido,
+        address: currentAssignment.detail.cita.direccion_cita || currentAssignment.detail.pedido?.direccion_entrega || '',
       })
     ) {
       return
@@ -199,13 +288,14 @@ export function AsignarServiciosMovilesScreen() {
       await addDetalleRuta({
         idRuta: targetRoute.id_ruta,
         body: {
-          id_cita: currentAssignment.detail.cita.id_cita,
+          id_cita: currentAssignment.detail.pedido?.id_pedido ? undefined : currentAssignment.detail.cita.id_cita,
+          id_pedido: currentAssignment.detail.pedido?.id_pedido,
           orden: getNextRouteOrder(targetRoute),
           hora_estimada:
             currentAssignment.detail.hora_estimada || currentAssignment.detail.cita.hora_inicio,
         },
       }).unwrap()
-      setFeedback('Servicio movil reasignado correctamente.')
+      setFeedback('Parada movil reasignada correctamente.')
     } catch (submitError) {
       setFeedback(getApiErrorMessage(submitError, 'No se pudo reasignar el servicio movil.'))
     }
@@ -235,7 +325,7 @@ export function AsignarServiciosMovilesScreen() {
             </>
           }
           title="Asignar servicios moviles"
-          description="Gestiona servicios y citas a domicilio pendientes, valida si su direccion corresponde a la zona operativa y luego asignalos o reasignalos entre unidades activas."
+          description="Gestiona citas y pedidos a domicilio pendientes, valida si su direccion corresponde a la zona operativa y luego asignalos o reasignalos entre unidades activas."
         />
 
         <Card className="border-violet-100 shadow-sm">
@@ -256,6 +346,7 @@ export function AsignarServiciosMovilesScreen() {
               onClick={() => {
                 void routesQuery.refetch()
                 void reservasQuery.refetch()
+                void pedidosQuery.refetch()
                 void assignmentsQuery.refetch()
               }}
             >
@@ -280,17 +371,27 @@ export function AsignarServiciosMovilesScreen() {
                 Pendientes para {formatDateLabel(selectedDate)}
               </h2>
               <p className="text-sm text-slate-600">
-                La direccion de cada cita debe coincidir con la zona de la unidad antes de asignarla.
+                La direccion de cada cita o pedido debe coincidir con la zona de la unidad antes de asignarla.
               </p>
             </div>
 
-            {pendingHomeServices.length === 0 ? (
+            {pendingStops.length === 0 ? (
               <div className="rounded-xl border border-dashed border-violet-200 bg-violet-50/40 p-4 text-sm text-gray-600">
-                No hay servicios pendientes para asignar hoy.
+                No hay paradas pendientes para asignar hoy.
               </div>
             ) : (
-              pendingHomeServices.map((appointment) => (
-                <div key={appointment.id_cita} className="rounded-2xl border border-violet-100 p-4">
+              pendingStops.map((candidate) => {
+                const appointment = {
+                  ...candidate,
+                  id_cita: candidate.id_cita ?? candidate.id_pedido ?? 0,
+                  mascota_nombre: candidate.label,
+                  servicio_nombre: candidate.subtitle,
+                  hora_inicio: candidate.timeLabel || '',
+                  direccion_cita: candidate.address,
+                }
+
+                return (
+                <div key={candidate.key} className="rounded-2xl border border-violet-100 p-4">
                   <div className="space-y-1">
                     <p className="font-semibold text-gray-900">
                       #{appointment.id_cita} · {appointment.mascota_nombre || 'Mascota sin nombre'}
@@ -332,7 +433,8 @@ export function AsignarServiciosMovilesScreen() {
                     })}
                   </div>
                 </div>
-              ))
+                )
+              })
             )}
           </CardContent>
         </Card>
