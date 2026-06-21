@@ -53,6 +53,7 @@ type MenuChild = {
     | '/Inventario_Movimientos'
     | '/ventas-pagos/ventas'
     | '/ventas-pagos/ventas/nueva'
+    | '/ventas-pagos/historial-transacciones'
     | '/billing'
   hasAccess?: boolean
 }
@@ -185,6 +186,10 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
           {
             label: 'Consultar Ventas',
             to: '/ventas-pagos/ventas',
+          },
+          {
+            label: 'Historial Transacciones',
+            to: '/ventas-pagos/historial-transacciones',
           },
         ],
       },
@@ -334,6 +339,7 @@ export function Sidebar({
     '/Gestionar_Proveedores': true,
     '/ventas-pagos/ventas': canViewVentas,
     '/ventas-pagos/ventas/nueva': canViewVentas,
+    '/ventas-pagos/historial-transacciones': canViewVentas,
 
     '/notificaciones/seguimiento': true,
     '/Gestionar_Reportes': true,

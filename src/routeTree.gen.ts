@@ -60,6 +60,7 @@ import { Route as DemoFormSimpleRouteImport } from './routes/demo/form.simple'
 import { Route as DemoFormAddressRouteImport } from './routes/demo/form.address'
 import { Route as PublicBillingSuccessRouteImport } from './routes/_public/billing.success'
 import { Route as ClientMiCuentaCambiarPasswordRouteImport } from './routes/_client/mi-cuenta/cambiar-password'
+import { Route as AdminVentasPagosHistorialTransaccionesRouteImport } from './routes/_admin/ventas-pagos/historial-transacciones'
 import { Route as AdminSeguridadCambiarPasswordRouteImport } from './routes/_admin/seguridad/cambiar-password'
 import { Route as AdminNotificacionesSeguimientoRouteImport } from './routes/_admin/notificaciones/seguimiento'
 import { Route as AdminVentasPagosVentasIndexRouteImport } from './routes/_admin/ventas-pagos/ventas/index'
@@ -333,6 +334,12 @@ const ClientMiCuentaCambiarPasswordRoute =
     path: '/mi-cuenta/cambiar-password',
     getParentRoute: () => ClientRoute,
   } as any)
+const AdminVentasPagosHistorialTransaccionesRoute =
+  AdminVentasPagosHistorialTransaccionesRouteImport.update({
+    id: '/ventas-pagos/historial-transacciones',
+    path: '/ventas-pagos/historial-transacciones',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminSeguridadCambiarPasswordRoute =
   AdminSeguridadCambiarPasswordRouteImport.update({
     id: '/seguridad/cambiar-password',
@@ -411,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/demo/table': typeof DemoTableRoute
   '/notificaciones/seguimiento': typeof AdminNotificacionesSeguimientoRoute
   '/seguridad/cambiar-password': typeof AdminSeguridadCambiarPasswordRoute
+  '/ventas-pagos/historial-transacciones': typeof AdminVentasPagosHistorialTransaccionesRoute
   '/mi-cuenta/cambiar-password': typeof ClientMiCuentaCambiarPasswordRoute
   '/billing/success': typeof PublicBillingSuccessRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -466,6 +474,7 @@ export interface FileRoutesByTo {
   '/demo/table': typeof DemoTableRoute
   '/notificaciones/seguimiento': typeof AdminNotificacionesSeguimientoRoute
   '/seguridad/cambiar-password': typeof AdminSeguridadCambiarPasswordRoute
+  '/ventas-pagos/historial-transacciones': typeof AdminVentasPagosHistorialTransaccionesRoute
   '/mi-cuenta/cambiar-password': typeof ClientMiCuentaCambiarPasswordRoute
   '/billing/success': typeof PublicBillingSuccessRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -525,6 +534,7 @@ export interface FileRoutesById {
   '/_public/': typeof PublicIndexRoute
   '/_admin/notificaciones/seguimiento': typeof AdminNotificacionesSeguimientoRoute
   '/_admin/seguridad/cambiar-password': typeof AdminSeguridadCambiarPasswordRoute
+  '/_admin/ventas-pagos/historial-transacciones': typeof AdminVentasPagosHistorialTransaccionesRoute
   '/_client/mi-cuenta/cambiar-password': typeof ClientMiCuentaCambiarPasswordRoute
   '/_public/billing/success': typeof PublicBillingSuccessRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -582,6 +592,7 @@ export interface FileRouteTypes {
     | '/demo/table'
     | '/notificaciones/seguimiento'
     | '/seguridad/cambiar-password'
+    | '/ventas-pagos/historial-transacciones'
     | '/mi-cuenta/cambiar-password'
     | '/billing/success'
     | '/demo/form/address'
@@ -637,6 +648,7 @@ export interface FileRouteTypes {
     | '/demo/table'
     | '/notificaciones/seguimiento'
     | '/seguridad/cambiar-password'
+    | '/ventas-pagos/historial-transacciones'
     | '/mi-cuenta/cambiar-password'
     | '/billing/success'
     | '/demo/form/address'
@@ -695,6 +707,7 @@ export interface FileRouteTypes {
     | '/_public/'
     | '/_admin/notificaciones/seguimiento'
     | '/_admin/seguridad/cambiar-password'
+    | '/_admin/ventas-pagos/historial-transacciones'
     | '/_client/mi-cuenta/cambiar-password'
     | '/_public/billing/success'
     | '/demo/form/address'
@@ -1072,6 +1085,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClientMiCuentaCambiarPasswordRouteImport
       parentRoute: typeof ClientRoute
     }
+    '/_admin/ventas-pagos/historial-transacciones': {
+      id: '/_admin/ventas-pagos/historial-transacciones'
+      path: '/ventas-pagos/historial-transacciones'
+      fullPath: '/ventas-pagos/historial-transacciones'
+      preLoaderRoute: typeof AdminVentasPagosHistorialTransaccionesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/seguridad/cambiar-password': {
       id: '/_admin/seguridad/cambiar-password'
       path: '/seguridad/cambiar-password'
@@ -1140,6 +1160,7 @@ interface AdminRouteChildren {
   AdminGestionarBackupsRoute: typeof AdminGestionarBackupsRoute
   AdminNotificacionesSeguimientoRoute: typeof AdminNotificacionesSeguimientoRoute
   AdminSeguridadCambiarPasswordRoute: typeof AdminSeguridadCambiarPasswordRoute
+  AdminVentasPagosHistorialTransaccionesRoute: typeof AdminVentasPagosHistorialTransaccionesRoute
   AdminVentasPagosVentasIdRoute: typeof AdminVentasPagosVentasIdRoute
   AdminVentasPagosVentasNuevaRoute: typeof AdminVentasPagosVentasNuevaRoute
   AdminVentasPagosVentasIndexRoute: typeof AdminVentasPagosVentasIndexRoute
@@ -1179,6 +1200,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminGestionarBackupsRoute: AdminGestionarBackupsRoute,
   AdminNotificacionesSeguimientoRoute: AdminNotificacionesSeguimientoRoute,
   AdminSeguridadCambiarPasswordRoute: AdminSeguridadCambiarPasswordRoute,
+  AdminVentasPagosHistorialTransaccionesRoute:
+    AdminVentasPagosHistorialTransaccionesRoute,
   AdminVentasPagosVentasIdRoute: AdminVentasPagosVentasIdRoute,
   AdminVentasPagosVentasNuevaRoute: AdminVentasPagosVentasNuevaRoute,
   AdminVentasPagosVentasIndexRoute: AdminVentasPagosVentasIndexRoute,
