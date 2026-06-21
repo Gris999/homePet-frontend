@@ -116,8 +116,19 @@ export interface HistorialTransaccionesFiltersForm {
   monto_max: string
 }
 
+export interface HistorialClienteOption {
+  id: number
+  label: string
+}
+
+export interface HistorialClienteLookupItem {
+  id_usuario: number
+  nombre: string | null
+  correo?: string | null
+}
+
 export interface HistorialTransaccionesQueryParams {
-  cliente?: string
+  cliente?: number
   fecha_inicio?: string
   fecha_fin?: string
   estado_pago?: string

@@ -1,5 +1,6 @@
 import { api } from '#/store/api/api'
 import type {
+  HistorialClienteLookupItem,
   HistorialPaginatedResponse,
   HistorialTransaccionDetalle,
   HistorialTransaccionItem,
@@ -20,6 +21,11 @@ function cleanParams(params?: HistorialTransaccionesQueryParams) {
 
 export const historialTransaccionesApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    getHistorialClientes: builder.query<HistorialClienteLookupItem[], void>({
+      query: () => ({
+        url: 'gestion/clientes/usuarios/',
+      }),
+    }),
     getHistorialTransacciones: builder.query<
       HistorialPaginatedResponse<HistorialTransaccionItem>,
       HistorialTransaccionesQueryParams | void
@@ -39,6 +45,7 @@ export const historialTransaccionesApi = api.injectEndpoints({
 })
 
 export const {
+  useGetHistorialClientesQuery,
   useGetHistorialTransaccionesQuery,
   useGetHistorialTransaccionDetalleQuery,
 } = historialTransaccionesApi

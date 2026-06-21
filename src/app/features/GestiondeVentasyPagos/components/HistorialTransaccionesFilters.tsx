@@ -3,11 +3,16 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent } from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
-import type { HistorialTransaccionesFiltersForm } from '../types/historialTransacciones.types'
+import type {
+  HistorialClienteOption,
+  HistorialTransaccionesFiltersForm,
+} from '../types/historialTransacciones.types'
 
 type HistorialTransaccionesFiltersProps = {
   values: HistorialTransaccionesFiltersForm
+  clientes: HistorialClienteOption[]
   isLoading?: boolean
+  isLoadingClientes?: boolean
   onChange: (next: HistorialTransaccionesFiltersForm) => void
   onApply: () => void
   onClear: () => void
@@ -18,7 +23,9 @@ const selectClassName =
 
 export function HistorialTransaccionesFilters({
   values,
+  clientes,
   isLoading = false,
+  isLoadingClientes = false,
   onChange,
   onApply,
   onClear,
@@ -38,12 +45,28 @@ export function HistorialTransaccionesFilters({
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <div className="space-y-1">
             <label className="text-xs font-semibold uppercase tracking-wide text-slate-600">Cliente</label>
-            <Input
+            <select
               value={values.cliente}
               onChange={(event) => onChange({ ...values, cliente: event.target.value })}
-              placeholder="Buscar cliente..."
-              className="h-10 border-violet-200 bg-white"
-            />
+              className={selectClassName}
+            >
+              <option value="">Todos</option>
+              {isLoadingClientes ? (
+                <option value="" disabled>
+                  Cargando clientes...
+                </option>
+              ) : null}
+              {clientes.map((cliente) => (
+                <option key={cliente.id} value={String(cliente.id)}>
+                  {cliente.label}
+                </option>
+              ))}
+            </select>
+            {!isLoadingClientes && clientes.length === 0 ? (
+              <p className="text-xs text-slate-500">
+                No se cargaron clientes desde el backend para este filtro.
+              </p>
+            ) : null}
           </div>
 
           <div className="space-y-1">

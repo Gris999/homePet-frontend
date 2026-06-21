@@ -4,10 +4,12 @@ import { Card, CardContent } from '#/components/ui/card'
 import { Button } from '#/components/ui/button'
 import { useAppSelector } from '#/store/hooks'
 import {
+  useGetHistorialClientesQuery,
   useGetHistorialTransaccionDetalleQuery,
   useGetHistorialTransaccionesQuery,
 } from '../services/historialTransaccionesApi'
 import type {
+  HistorialClienteOption,
   HistorialTransaccionItem,
   HistorialTransaccionesFiltersForm,
   HistorialTransaccionesQueryParams,
@@ -61,8 +63,10 @@ function buildQueryParams(
   page: number,
   pageSize: number,
 ): HistorialTransaccionesQueryParams {
+  const clienteId = Number(filters.cliente)
+
   return {
-    cliente: filters.cliente.trim() || undefined,
+    cliente: Number.isInteger(clienteId) && clienteId > 0 ? clienteId : undefined,
     fecha_inicio: filters.fecha_inicio || undefined,
     fecha_fin: filters.fecha_fin || undefined,
     estado_pago: filters.estado_pago || undefined,
@@ -96,6 +100,7 @@ export function HistorialTransaccionesPage() {
   const user = useAppSelector((state) => state.auth.user)
   const canAccess = canAccessVentasModule(user)
 
+  const clientesQuery = useGetHistorialClientesQuery(undefined, { skip: !canAccess })
   const [draftFilters, setDraftFilters] = useState<HistorialTransaccionesFiltersForm>(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState<HistorialTransaccionesFiltersForm>(initialFilters)
   const [page, setPage] = useState(1)
@@ -112,6 +117,32 @@ export function HistorialTransaccionesPage() {
   const totalRegistros = historialQuery.data?.count ?? 0
   const totalPaginas = totalRegistros > 0 ? Math.ceil(totalRegistros / pageSize) : 1
   const resumen = useMemo(() => buildResumen(transacciones), [transacciones])
+  const clientes = useMemo<HistorialClienteOption[]>(() => {
+    const optionsMap = new Map<number, string>()
+
+    const rows = clientesQuery.data ?? []
+    rows.forEach((cliente) => {
+      if (cliente.id_usuario > 0) {
+        optionsMap.set(
+          cliente.id_usuario,
+          cliente.nombre?.trim() || cliente.correo?.trim() || `Cliente ${cliente.id_usuario}`,
+        )
+      }
+    })
+
+    transacciones.forEach((transaccion) => {
+      if (transaccion.cliente_id && transaccion.cliente_id > 0) {
+        optionsMap.set(
+          transaccion.cliente_id,
+          transaccion.cliente_nombre || `Cliente ${transaccion.cliente_id}`,
+        )
+      }
+    })
+
+    return Array.from(optionsMap.entries())
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }))
+  }, [clientesQuery.data, transacciones])
 
   useEffect(() => {
     if (!transacciones.length) {
@@ -180,7 +211,9 @@ export function HistorialTransaccionesPage() {
         <div className="space-y-5">
           <HistorialTransaccionesFilters
             values={draftFilters}
+            clientes={clientes}
             isLoading={historialQuery.isFetching}
+            isLoadingClientes={clientesQuery.isLoading || clientesQuery.isFetching}
             onChange={setDraftFilters}
             onApply={() => {
               setPage(1)
