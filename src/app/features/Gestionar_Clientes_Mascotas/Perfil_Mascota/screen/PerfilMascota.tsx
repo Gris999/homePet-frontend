@@ -11,7 +11,7 @@ import {
   useGetMascotaPlanSanitarioQuery,
   useGetMascotaVacunasQuery,
 } from "../store"
-import { useGetMascotasMeQuery } from "../../Gestionar_Mascotas/store/gestionarMascotasApi"
+import { useGetMisMascotasQuery } from "@/app/features/GestionServiciosyReserva/Cliente_Reservas/store/clienteApi"
 import {
   MascotaProfileCard,
   HistorialClinicoTratamientos,
@@ -26,7 +26,7 @@ export function PerfilMascotaScreen() {
   const {
     data: mascotas = [],
     isLoading: isLoadingMascotas,
-  } = useGetMascotasMeQuery()
+  } = useGetMisMascotasQuery()
 
   // Queries para el perfil seleccionado
   const {

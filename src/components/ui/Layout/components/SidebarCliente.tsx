@@ -9,9 +9,10 @@ import {
   ClipboardList,
   Home,
   PawPrint,
+  Stethoscope,
   ShoppingBagIcon,
-  type LucideIcon,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { useAppSelector } from '#/store/hooks'
 
@@ -51,6 +52,13 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
         ],
       },
       {
+        label: 'Clinica veterinaria',
+        icon: Stethoscope,
+        children: [
+          { label: 'Historial clinico y plan sanitario', to: '/Perfil_Mascota' },
+        ],
+      },
+      {
         label: 'Reservas y citas',
         icon: CalendarPlus,
         children: [
@@ -70,7 +78,7 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
       {
         label: 'Historial rapido',
         icon: ClipboardList,
-        to: '/mis-reservas',
+        to: '/Perfil_Mascota',
       },
       {
         label: 'Seguridad',

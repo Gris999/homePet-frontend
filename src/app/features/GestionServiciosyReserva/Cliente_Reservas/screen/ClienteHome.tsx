@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { CalendarPlus, PawPrint, PencilLine } from 'lucide-react'
+import { CalendarPlus, PawPrint, PencilLine, Stethoscope } from 'lucide-react'
 
 const actions = [
   {
@@ -20,6 +20,12 @@ const actions = [
     to: '/mis-reservas',
     icon: PencilLine,
   },
+  {
+    title: 'Ver historial clinico',
+    text: 'Consulta el historial clinico y el plan sanitario preventivo de tus mascotas.',
+    to: '/Perfil_Mascota',
+    icon: Stethoscope,
+  },
 ] as const
 
 export function ClienteHome() {
@@ -35,7 +41,7 @@ export function ClienteHome() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {actions.map((action) => {
           const Icon = action.icon
 
