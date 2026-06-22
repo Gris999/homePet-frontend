@@ -35,3 +35,18 @@ export interface HistorialClinicoResponse {
 export interface VacunasResponse {
   vacunas_aplicadas: VacunaAplicada[]
 }
+
+export interface PlanSanitarioPreventivoItem {
+  id_plan_sanitario: number
+  mascota: number
+  mascota_nombre: string
+  tipo_evento: string
+  tipo_evento_display: string
+  descripcion: string
+  fecha_programada: string
+  estado_plan: 'PENDIENTE' | 'REALIZADO' | 'VENCIDO' | 'CANCELADO'
+  estado_plan_display: string
+  observaciones: string | null
+  usuario_registro_nombre: string
+  estado: boolean
+}

@@ -6,7 +6,6 @@ import {
   Heart,
   RefreshCw,
 } from 'lucide-react'
-import { useCallback } from 'react'
 import { StatCard } from '../components/StatCard'
 import { SalesChart } from '../components/SalesChart'
 import { ReservationsPieChart } from '../components/ReservationsPieChart'
@@ -47,9 +46,9 @@ export function DashboardScreen() {
       })
     : null
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () => {
     refetch()
-  }, [refetch])
+  }
 
   return (
     <div className="flex flex-col gap-6">

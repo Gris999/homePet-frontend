@@ -3,6 +3,7 @@ import type {
   HistorialClinicoResponse,
   VacunasResponse,
   Mascota,
+  PlanSanitarioPreventivoItem,
 } from "../types"
 
 export const perfilMascotaApi = api.injectEndpoints({
@@ -25,6 +26,21 @@ export const perfilMascotaApi = api.injectEndpoints({
       query: (idMascota) => `/gestion/clientes/mascotas/${idMascota}/vacunas/`,
       providesTags: ["Pets"],
     }),
+    getMascotaPlanSanitario: builder.query<PlanSanitarioPreventivoItem[], number>({
+      query: (idMascota) => `/gestion/clinica/mascotas/${idMascota}/plan-sanitario/`,
+      providesTags: ["Pets"],
+      transformResponse: (
+        response:
+          | PlanSanitarioPreventivoItem[]
+          | { results: PlanSanitarioPreventivoItem[] }
+      ) => {
+        if (Array.isArray(response)) return response
+        if ("results" in response && Array.isArray(response.results)) {
+          return response.results
+        }
+        return []
+      },
+    }),
   }),
   overrideExisting: false,
 })
@@ -33,4 +49,5 @@ export const {
   useGetMascotaPerfilQuery,
   useGetMascotaHistorialClinicoQuery,
   useGetMascotaVacunasQuery,
+  useGetMascotaPlanSanitarioQuery,
 } = perfilMascotaApi

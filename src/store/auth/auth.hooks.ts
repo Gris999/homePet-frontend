@@ -1,7 +1,6 @@
-import { useCallback } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useAppDispatch, useAppSelector } from '../hooks';
-//import { logout } from './authSlice';
+// import { logout } from './authSlice';
 import { useLogoutSessionMutation } from './authApi';
 import { performFullLogout } from './auth.actions';
 import {
@@ -17,7 +16,7 @@ export const useLogout = () => {
   const refreshToken = useAppSelector((state) => state.auth.refreshToken);
   const [logoutSession, { isLoading }] = useLogoutSessionMutation();
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = async () => {
     try {
       // Llamar al endpoint de logout del backend si hay refreshToken
       if (refreshToken) {
@@ -32,7 +31,7 @@ export const useLogout = () => {
       // Redirigir a login
       navigate({ to: '/login', search: { register: false } });
     }
-  }, [refreshToken, logoutSession, dispatch, navigate]);
+  };
 
   return {
     handleLogout,

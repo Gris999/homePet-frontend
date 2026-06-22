@@ -1,5 +1,5 @@
-import { type AppDispatch } from "../store";
-import { setCredentials } from "./authSlice";
+import type { AppDispatch } from "../store";
+import { setCredentials, updateUser } from "./authSlice";
 import { setTenant } from "../tenant/tenantSlice";
 import { setComponents } from "../components/componentSlice";
 import type { AuthContextResponse, LoginResponse } from "./auth.types";
@@ -38,6 +38,8 @@ export function applyMeContext(
   // o creamos una acción específica en el futuro.
   // Por ahora, el plan dice "reconstruir Redux".
   
+  dispatch(updateUser(data.usuario))
+
   dispatch(
     setTenant({
       veterinaria: data.veterinaria,

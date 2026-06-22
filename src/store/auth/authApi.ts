@@ -9,7 +9,18 @@ import type {
   ResetPasswordRequest,
   AuthContextResponse,
   MobileLoginRequest,
+  User,
 } from './auth.types';
+
+const normalizeUser = (source: any): User => ({
+  id_usuario: Number(source?.id_usuario ?? source?.id ?? 0),
+  correo: source?.correo ?? '',
+  nombre: source?.nombre ?? '',
+  role: source?.role ?? source?.rol ?? 'CLIENT',
+  id_veterinaria:
+    source?.id_veterinaria != null ? Number(source.id_veterinaria) : null,
+  is_superuser: Boolean(source?.is_superuser),
+});
 
 export const authApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -22,7 +33,7 @@ export const authApi = api.injectEndpoints({
       transformResponse: (response: any): LoginResponse => ({
         access: response.access,
         refresh: response.refresh,
-        usuario: response.context.usuario,
+        usuario: normalizeUser(response.context.usuario),
         veterinaria: response.context.veterinaria,
         plan: response.context.plan,
         componentes: response.context.componentes,
@@ -37,7 +48,7 @@ export const authApi = api.injectEndpoints({
       transformResponse: (response: any): LoginResponse => ({
         access: response.access,
         refresh: response.refresh,
-        usuario: response.context.usuario,
+        usuario: normalizeUser(response.context.usuario),
         veterinaria: response.context.veterinaria,
         plan: response.context.plan,
         componentes: response.context.componentes,
@@ -52,7 +63,7 @@ export const authApi = api.injectEndpoints({
       transformResponse: (response: any): LoginResponse => ({
         access: response.access,
         refresh: response.refresh,
-        usuario: response.context.usuario,
+        usuario: normalizeUser(response.context.usuario),
         veterinaria: response.context.veterinaria,
         plan: response.context.plan,
         componentes: response.context.componentes,
@@ -61,7 +72,7 @@ export const authApi = api.injectEndpoints({
     me: builder.query<AuthContextResponse, void>({
       query: () => '/auth/me/',
       transformResponse: (response: any): AuthContextResponse => ({
-        usuario: response.context.usuario,
+        usuario: normalizeUser(response.context.usuario),
         veterinaria: response.context.veterinaria,
         plan: response.context.plan,
         componentes: response.context.componentes,
@@ -77,7 +88,7 @@ export const authApi = api.injectEndpoints({
       transformResponse: (response: any): LoginResponse => ({
         access: response.access,
         refresh: response.refresh,
-        usuario: response.context.usuario,
+        usuario: normalizeUser(response.context.usuario),
         veterinaria: response.context.veterinaria,
         plan: response.context.plan,
         componentes: response.context.componentes,

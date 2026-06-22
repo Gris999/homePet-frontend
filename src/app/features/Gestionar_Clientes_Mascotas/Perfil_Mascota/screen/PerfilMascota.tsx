@@ -8,12 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   useGetMascotaPerfilQuery,
   useGetMascotaHistorialClinicoQuery,
+  useGetMascotaPlanSanitarioQuery,
   useGetMascotaVacunasQuery,
 } from "../store"
 import { useGetMascotasMeQuery } from "../../Gestionar_Mascotas/store/gestionarMascotasApi"
 import {
   MascotaProfileCard,
   HistorialClinicoTratamientos,
+  PlanSanitarioPreventivo,
   VacunasAplicadas,
 } from "../components"
 
@@ -38,6 +40,13 @@ export function PerfilMascotaScreen() {
     data: historialData,
     isLoading: isLoadingHistorial,
   } = useGetMascotaHistorialClinicoQuery(selectedMascotaId || 0, {
+    skip: !selectedMascotaId,
+  })
+
+  const {
+    data: planSanitario = [],
+    isLoading: isLoadingPlanSanitario,
+  } = useGetMascotaPlanSanitarioQuery(selectedMascotaId || 0, {
     skip: !selectedMascotaId,
   })
 
@@ -83,22 +92,22 @@ export function PerfilMascotaScreen() {
             </p>
           ) : (
             <div className="flex flex-wrap gap-3">
-              {mascotas.map((mascota: Mascota) => (
+              {mascotas.map((petItem: Mascota) => (
                 <Button
-                  key={mascota.id_mascota}
-                  onClick={() => setSelectedMascotaId(mascota.id_mascota)}
+                  key={petItem.id_mascota}
+                  onClick={() => setSelectedMascotaId(petItem.id_mascota)}
                   variant={
-                    selectedMascotaId === mascota.id_mascota
+                    selectedMascotaId === petItem.id_mascota
                       ? "default"
                       : "outline"
                   }
                   className={`${
-                    selectedMascotaId === mascota.id_mascota
+                    selectedMascotaId === petItem.id_mascota
                       ? "bg-[#7C3AED] text-white hover:bg-[#6D28D9]"
                       : "border-[#FFEDD5] text-[#7C3AED] hover:bg-[#FFFDFB]"
                   }`}
                 >
-                   {mascota.nombre}
+                   {petItem.nombre}
                 </Button>
               ))}
             </div>
@@ -124,6 +133,13 @@ export function PerfilMascotaScreen() {
             historial={historialData?.historial_clinico || null}
             tratamientos={historialData?.tratamientos || []}
             isLoading={isLoadingHistorial}
+          />
+
+          <Separator className="bg-[#FFEDD5]" />
+
+          <PlanSanitarioPreventivo
+            items={planSanitario}
+            isLoading={isLoadingPlanSanitario}
           />
 
           <Separator className="bg-[#FFEDD5]" />

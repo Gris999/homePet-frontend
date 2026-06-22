@@ -16,7 +16,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useCanView } from '#/store/auth/auth.hooks'
+import { useCanView } from '#/store/components/component.hooks'
 import { useAppSelector } from '#/store/hooks'
 
 type MenuChild = {
@@ -31,6 +31,7 @@ type MenuChild = {
     | '/Gestionar_Servicios_Precios_Catalogo'
     | '/Gestionar_Agenda'
     | '/Gestionar_Historia_Clinica'
+    | '/Gestionar_Plan_Sanitario'
     | '/Gestionar_Clinicas_Veterinarias'
     | '/Gestionar_Reservas'
     | '/Rutas_Programadas'
@@ -106,6 +107,10 @@ const menuSections: Array<{ section: string; items: MenuItem[] }> = [
           {
             label: 'Gestionar Historial Clínico',
             to: '/Gestionar_Historia_Clinica',
+          },
+          {
+            label: 'Plan Sanitario',
+            to: '/Gestionar_Plan_Sanitario',
           },
         ],
       },
@@ -294,6 +299,8 @@ export function Sidebar({
   const canViewClientes = useCanView('CLI_CLIENTES')
   const canViewMascotas = useCanView('CLI_MASCOTAS')
   const canViewClinicas = useCanView('CLI_CLINICAS')
+  const canViewPlanSanitario = useCanView('CLI_PLAN_SANITARIO')
+  const canViewHistoriales = useCanView('CLI_HISTORIALES')
   const canViewServicios = useCanView('SERV_SERVICIOS')
   const canViewCitas = useCanView('SERV_CITAS')
 
@@ -320,6 +327,7 @@ export function Sidebar({
 
     '/Gestionar_Clinicas_Veterinarias': canViewClinicas,
     '/Gestionar_Historia_Clinica': canViewMascotas,
+    '/Gestionar_Plan_Sanitario': canViewPlanSanitario || canViewHistoriales,
 
     '/Gestionar_Servicios_Precios_Catalogo': canViewServicios,
     '/Gestionar_Agenda': canViewServicios,
