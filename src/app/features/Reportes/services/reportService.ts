@@ -1,8 +1,8 @@
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? 'http://127.0.0.1:8000/api' : 'https://pethome-backend-ujju.onrender.com/api');
+  'https://pethome-backend-ujju.onrender.com/api';
 
-const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://petjs.app.n8n.cloud/webhook/chat';
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://petcore.app.n8n.cloud/webhook/chat';
 
 export type ReportHistoryParams = {
   url?: string;

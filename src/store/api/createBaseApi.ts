@@ -2,7 +2,7 @@ import { fetchBaseQuery, type BaseQueryFn, type FetchArgs, type FetchBaseQueryEr
 import type { RootState } from '../store';
 import { logout, setAccessToken } from '../auth/authSlice';
 
-const DEFAULT_DEV_API_URL = 'http://127.0.0.1:8000/api';
+const DEFAULT_DEV_API_URL = 'https://pethome-backend-ujju.onrender.com/api';
 const DEFAULT_PROD_API_URL = 'https://pethome-backend-ujju.onrender.com/api';
 
 const API_URL =
